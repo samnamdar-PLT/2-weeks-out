@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2 Weeks Out — Ticket Watch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#121214;
+    --card:#1c1c20;
+    --card-hover:#212126;
+    --hairline:#302f34;
+    --dash:#3c3b41;
+    --text:#eae7e0;
+    --muted:#8f8d92;
+    --amber:#f2c14e;
+    --teal:#4fc8bf;
+    --coral:#ff6b6a;
+    --today:#e8543f;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+  }
+  ::selection{background:var(--amber);color:#121214;}
+
+  /* ---------- Header ---------- */
+  header{
+    position:sticky;top:0;z-index:20;
+    background:linear-gradient(180deg,var(--bg) 80%,rgba(18,18,20,0));
+    padding:28px 24px 14px;
+    border-bottom:1px solid var(--hairline);
+  }
+  .header-inner{max-width:920px;margin:0 auto;}
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--amber);margin:0 0 4px;
+  }
+  h1{
+    font-family:'Bebas Neue',sans-serif;
+    font-size:44px;letter-spacing:.03em;
+    margin:0 0 14px;line-height:1;
+    display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;
+  }
+  h1 span.count{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:15px;color:var(--muted);letter-spacing:0;
+  }
+  .sheet-tabs{
+    display:flex;gap:2px;align-items:flex-end;
+    border-bottom:1px solid var(--hairline);
+    overflow-x:auto;flex-wrap:nowrap;
+    scrollbar-width:thin;
+    margin-top:2px;
+  }
+  .sheet-tab{
+    display:flex;align-items:center;gap:7px;
+    font-family:'Inter',sans-serif;font-size:12.5px;font-weight:600;
+    white-space:nowrap;
+    padding:8px 10px;
+    border:none;background:transparent;color:var(--muted);
+    cursor:pointer;
+    border-bottom:2px solid transparent;
+    margin-bottom:-1px;
+    border-radius:6px 6px 0 0;
+    transition:color .15s ease, background .15s ease;
+    flex:0 0 auto;
+  }
+  .sheet-tab:hover{color:var(--text);background:rgba(255,255,255,.04);}
+  .sheet-tab.active{color:var(--text);border-bottom-color:var(--amber);}
+  .tab-close{
+    opacity:0;font-size:14px;line-height:1;color:var(--muted);
+    transition:opacity .15s ease, color .15s ease;
+    padding:0 1px;
+  }
+  .sheet-tab:hover .tab-close{opacity:1;}
+  .tab-close:hover{color:var(--coral);}
+  .sheet-tab.add-tab{color:var(--muted);font-size:16px;padding:8px 13px;}
+  .sheet-tab.add-tab:hover{color:var(--amber);}
+
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px;}
+  .scope-toggle{
+    display:flex;border:1px solid var(--hairline);border-radius:8px;overflow:hidden;flex:0 0 auto;
+  }
+  .scope-btn{
+    font-family:'Inter',sans-serif;font-size:12.5px;font-weight:600;
+    padding:9px 12px;border:none;background:var(--card);color:var(--muted);
+    cursor:pointer;white-space:nowrap;
+    transition:background .15s ease, color .15s ease;
+  }
+  .scope-btn + .scope-btn{border-left:1px solid var(--hairline);}
+  .scope-btn.active{background:var(--teal);color:#0d211f;}
+  .scope-btn:not(.active):hover{background:var(--card-hover);color:var(--text);}
+  .sheet-tag{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10px;letter-spacing:.04em;text-transform:uppercase;
+    color:var(--muted);
+    border:1px solid var(--hairline);
+    border-radius:4px;
+    padding:2px 6px;
+    display:inline-block;
+    margin-top:2px;
+    width:fit-content;
+  }
+  .search-wrap{position:relative;flex:1 1 240px;min-width:180px;}
+  .search-wrap input{
+    width:100%;
+    background:var(--card);
+    border:1px solid var(--hairline);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    font-size:14px;
+    padding:10px 12px 10px 34px;
+    border-radius:8px;
+    outline:none;
+  }
+  .search-wrap input:focus{border-color:var(--amber);}
+  .search-wrap svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);opacity:.5;}
+  .btn{
+    font-family:'Inter',sans-serif;
+    font-size:13px;font-weight:600;
+    padding:10px 14px;border-radius:8px;
+    border:1px solid var(--hairline);
+    background:var(--card);color:var(--text);
+    cursor:pointer;white-space:nowrap;
+    transition:border-color .15s ease, background .15s ease;
+  }
+  .btn:hover{border-color:var(--muted);background:var(--card-hover);}
+  .btn.primary{background:var(--amber);color:#151310;border-color:var(--amber);}
+  .btn.primary:hover{filter:brightness(1.08);}
+  .btn.ghost{background:transparent;}
+  input[type=file]{display:none;}
+  .meta-line{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11.5px;color:var(--muted);
+    margin-top:10px;
+  }
+
+  /* ---------- Body / list ---------- */
+  main{max-width:920px;margin:0 auto;padding:22px 24px 80px;}
+
+  .day-heading{
+    position:sticky;top:var(--header-h, 150px);
+    background:var(--bg);
+    font-family:'Bebas Neue',sans-serif;
+    font-size:22px;letter-spacing:.02em;
+    color:var(--text);
+    padding:14px 0 8px;
+    display:flex;align-items:center;gap:10px;
+    z-index:10;
+  }
+  .day-heading .tag-today{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;
+    background:var(--today);color:#fff;
+    padding:3px 7px;border-radius:4px;
+    transform:translateY(-1px);
+  }
+
+  .ticket{
+    position:relative;
+    display:flex;
+    background:var(--card);
+    border:1px solid var(--hairline);
+    border-radius:10px;
+    margin-bottom:12px;
+    overflow:hidden;
+    transition:border-color .15s ease;
+  }
+  .ticket:hover{border-color:#4a4950;}
+
+  .ticket-info{
+    flex:1 1 auto;
+    min-width:0;
+    padding:16px 18px;
+    display:flex;
+    flex-direction:column;
+    gap:5px;
+    justify-content:center;
+  }
+  .ev-name{
+    font-size:16px;font-weight:700;color:var(--text);
+    line-height:1.3;
+  }
+  .ev-venue{
+    font-size:13.5px;color:var(--muted);
+    line-height:1.3;
+  }
+  .ev-time{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;color:var(--amber);
+    letter-spacing:.02em;
+  }
+
+  .perf{
+    position:relative;
+    width:0;
+    border-left:2px dashed var(--dash);
+    flex:0 0 auto;
+  }
+  .perf::before,.perf::after{
+    content:"";
+    position:absolute;left:50%;
+    width:16px;height:16px;
+    background:var(--bg);
+    border-radius:50%;
+    transform:translateX(-50%);
+  }
+  .perf::before{top:-9px;}
+  .perf::after{bottom:-9px;}
+
+  .ticket-actions{
+    flex:0 0 auto;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    padding:14px;
+    justify-content:center;
+    min-width:150px;
+  }
+  .link-btn{
+    display:flex;align-items:center;justify-content:space-between;
+    gap:8px;
+    font-family:'Inter',sans-serif;
+    font-size:12.5px;font-weight:600;
+    text-decoration:none;
+    padding:8px 10px;
+    border-radius:6px;
+    border:1px solid transparent;
+    color:#141316;
+    transition:filter .15s ease, transform .1s ease;
+  }
+  .link-btn:hover{filter:brightness(1.1);}
+  .link-btn:active{transform:scale(.98);}
+  .link-btn.primary-site{background:var(--amber);}
+  .link-btn.vivid{background:var(--teal);}
+  .link-btn.stub{background:var(--coral);}
+  .link-btn svg{flex:0 0 auto;opacity:.75;}
+  .link-btn.disabled{
+    background:transparent;
+    border:1px dashed var(--hairline);
+    color:var(--muted);
+    cursor:default;
+    pointer-events:none;
+  }
+
+  /* ---------- Empty state ---------- */
+  .empty{
+    max-width:520px;margin:80px auto;text-align:center;
+    padding:0 24px;
+  }
+  .empty .ticket-icon{font-size:40px;margin-bottom:14px;}
+  .empty h2{
+    font-family:'Bebas Neue',sans-serif;font-size:30px;
+    margin:0 0 8px;letter-spacing:.02em;
+  }
+  .empty p{color:var(--muted);font-size:14.5px;line-height:1.6;margin:0 0 20px;}
+  .drop-zone{
+    border:1.5px dashed var(--hairline);
+    border-radius:12px;
+    padding:34px 20px;
+    color:var(--muted);
+    font-size:13.5px;
+    transition:border-color .15s ease, background .15s ease;
+  }
+  .drop-zone.drag{border-color:var(--amber);background:rgba(242,193,78,.05);}
+
+  .no-results{color:var(--muted);font-size:14px;padding:40px 0;text-align:center;}
+
+  @media (max-width:560px){
+    h1{font-size:34px;}
+    .ticket{flex-direction:column;}
+    .perf{border-left:none;border-top:2px dashed var(--dash);width:auto;height:0;}
+    .perf::before{top:auto;left:-9px;bottom:-9px;}
+    .perf::after{left:auto;right:-9px;bottom:-9px;top:auto;}
+    .ticket-actions{flex-direction:row;flex-wrap:wrap;min-width:0;}
+    .link-btn{flex:1 1 30%;}
+  }
+</style>
+</head>
+<body>
+
+<header id="siteHeader">
+  <div class="header-inner">
+    <p class="eyebrow">2 Weeks Out</p>
+    <h1>Ticket Watch <span class="count" id="countLabel"></span></h1>
+    <div class="sheet-tabs" id="sheetTabs"></div>
+    <div class="toolbar">
+      <div class="search-wrap">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="searchInput" placeholder="Search event or venue…">
+      </div>
+      <div class="scope-toggle" id="scopeToggle">
+        <button class="scope-btn active" data-scope="sheet">This sheet</button>
+        <button class="scope-btn" data-scope="all">All sheets</button>
+      </div>
+      <button class="btn primary" id="uploadBtn">Upload CSV</button>
+      <button class="btn ghost" id="clearBtn" style="display:none;">Clear data</button>
+      <input type="file" id="fileInput" accept=".csv">
+    </div>
+    <p class="meta-line" id="metaLine"></p>
+  </div>
+</header>
+
+<main id="main">
+  <div class="empty" id="emptyState">
+    <div class="ticket-icon">🎟️</div>
+    <h2>This sheet is empty</h2>
+    <p>Upload a CSV — same format every time — and it becomes this sheet's data, exactly as uploaded, replacing whatever was there before. It stays saved until you upload again or delete it.</p>
+    <div class="drop-zone" id="dropZone">Drag a CSV here, or use the Upload CSV button above</div>
+  </div>
+  <div id="listRoot"></div>
+</main>
+
+<script>
+const $ = sel => document.querySelector(sel);
+const fileInput = $('#fileInput');
+const uploadBtn = $('#uploadBtn');
+const clearBtn = $('#clearBtn');
+const dropZone = $('#dropZone');
+const emptyState = $('#emptyState');
+const listRoot = $('#listRoot');
+const searchInput = $('#searchInput');
+const countLabel = $('#countLabel');
+const metaLine = $('#metaLine');
+const sheetTabs = $('#sheetTabs');
+const scopeToggle = $('#scopeToggle');
+const siteHeader = $('#siteHeader');
+
+let allEvents = [];
+let sheets = [];
+let activeSheetId = null;
+let searchScope = 'sheet'; // 'sheet' | 'all'
+
+// Keep the sticky day-section headers positioned exactly below the real
+// header, whatever its current height is (it changes as tabs wrap, the
+// meta line updates, or the window is resized).
+function syncHeaderHeight(){
+  document.documentElement.style.setProperty('--header-h', siteHeader.offsetHeight + 'px');
+}
+if(typeof ResizeObserver !== 'undefined'){
+  new ResizeObserver(syncHeaderHeight).observe(siteHeader);
+} else {
+  window.addEventListener('resize', syncHeaderHeight);
+}
+syncHeaderHeight();
+
+// ---------- CSV parsing ----------
+function parseCSV(text){
+  const rows = [];
+  let row = [], field = '', inQuotes = false;
+  for(let i=0;i<text.length;i++){
+    const c = text[i], next = text[i+1];
+    if(inQuotes){
+      if(c === '"' && next === '"'){ field += '"'; i++; }
+      else if(c === '"'){ inQuotes = false; }
+      else { field += c; }
+    } else {
+      if(c === '"'){ inQuotes = true; }
+      else if(c === ','){ row.push(field); field=''; }
+      else if(c === '\n'){ row.push(field); rows.push(row); row=[]; field=''; }
+      else if(c === '\r'){ /* skip */ }
+      else { field += c; }
+    }
+  }
+  if(field.length || row.length){ row.push(field); rows.push(row); }
+  if(!rows.length) return { headers: [], dataRows: [] };
+  const headers = rows[0].map(h => h.trim());
+  const dataRows = rows.slice(1)
+    .filter(r => r.some(cell => cell && cell.trim()))
+    .map(r => headers.map((_, idx) => (r[idx] !== undefined ? r[idx].trim() : '')));
+  return { headers, dataRows };
+}
+
+// Finds the column index matching any of the given header aliases
+// (case-insensitive, trimmed). Lets us support several CSV layouts.
+function findColumn(headers, aliases){
+  const normalized = headers.map(h => (h || '').trim().toLowerCase());
+  for(const alias of aliases){
+    const idx = normalized.indexOf(alias);
+    if(idx !== -1) return idx;
+  }
+  return -1;
+}
+
+// Guesses a ticket site name from a URL when no "Primary Site" column
+// is provided (e.g. a sheet that only has a "TM Link" column).
+function inferSiteFromUrl(url){
+  try{
+    const host = new URL(url).hostname.replace(/^www\./, '');
+    if(host.includes('ticketmaster')) return 'ticketmaster';
+    if(host.includes('axs')) return 'axs';
+    if(host.includes('vividseats')) return 'vividseats';
+    if(host.includes('stubhub')) return 'stubhub';
+    return host.split('.')[0];
+  }catch(e){ return ''; }
+}
+
+function parseEventDate(str){
+  if(!str) return null;
+
+  // e.g. "Mon, August 17, 2026at 11:00 AM"
+  let m = str.match(/([A-Za-z]+),?\s+([A-Za-z]+)\s+(\d{1,2}),\s*(\d{4})\s*at\s+(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+  if(m){
+    const [, , monthName, day, year, hour, minute, ampm] = m;
+    const months = ['january','february','march','april','may','june','july','august','september','october','november','december'];
+    const monthIdx = months.indexOf(monthName.toLowerCase());
+    if(monthIdx === -1) return null;
+    let h = parseInt(hour,10);
+    if(ampm.toUpperCase() === 'PM' && h !== 12) h += 12;
+    if(ampm.toUpperCase() === 'AM' && h === 12) h = 0;
+    return new Date(parseInt(year,10), monthIdx, parseInt(day,10), h, parseInt(minute,10));
+  }
+
+  // e.g. "Sunday, 8/30, 12:00 PM" — no year given, so infer one.
+  m = str.match(/^[A-Za-z]+,\s*(\d{1,2})\/(\d{1,2}),\s*(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+  if(m){
+    const [, month, day, hour, minute, ampm] = m;
+    let h = parseInt(hour,10);
+    if(ampm.toUpperCase() === 'PM' && h !== 12) h += 12;
+    if(ampm.toUpperCase() === 'AM' && h === 12) h = 0;
+    return inferYearedDate(parseInt(month,10), parseInt(day,10), h, parseInt(minute,10));
+  }
+
+  return null;
+}
+
+// Builds a full date from a month/day/time that had no year in the source
+// text. Assumes the current year unless that would land far in the past
+// (more than ~90 days ago), in which case it rolls to next year — handles
+// CSVs exported near a year boundary for events months out.
+function inferYearedDate(month, day, hour, minute){
+  const now = new Date();
+  let year = now.getFullYear();
+  let d = new Date(year, month - 1, day, hour, minute);
+  const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 3600 * 1000);
+  if(d < ninetyDaysAgo){
+    year += 1;
+    d = new Date(year, month - 1, day, hour, minute);
+  }
+  return d;
+}
+
+function siteLabel(site){
+  if(!site) return 'Tickets';
+  const s = site.trim().toLowerCase();
+  if(s === 'ticketmaster') return 'Ticketmaster';
+  if(s === 'axs') return 'AXS';
+  return site.charAt(0).toUpperCase() + site.slice(1);
+}
+
+function recordsFromCSV(text){
+  const { headers, dataRows } = parseCSV(text);
+  if(!headers.length) return [];
+
+  const nameIdx = findColumn(headers, ['event name', 'event', 'name']);
+  const sessionIdx = findColumn(headers, ['session']);
+  const venueIdx = findColumn(headers, ['venue']);
+  const dateIdx = findColumn(headers, ['date', 'date/time', 'event date']);
+  const primarySiteIdx = findColumn(headers, ['primary site', 'site']);
+  const primaryLinkIdx = findColumn(headers, ['primary link', 'tm link', 'ticketmaster link', 'link']);
+  const vividIdx = findColumn(headers, ['vividseats link', 'vivid link', 'vividseats', 'vivid']);
+  const stubIdx = findColumn(headers, ['stubhub link', 'stubhub']);
+
+  let lastSection = ''; // tracks bare-name rows like "Arthur Ashe" or "Grounds Passes"
+  const records = [];
+
+  dataRows.forEach(row => {
+    const nonEmpty = row.filter(v => v);
+    if(!nonEmpty.length) return; // fully blank row
+
+    const dateVal = dateIdx !== -1 ? row[dateIdx] : '';
+    const hasAnyLink = [primaryLinkIdx, vividIdx, stubIdx].some(idx => idx !== -1 && row[idx]);
+    const parsedDate = dateVal ? parseEventDate(dateVal) : null;
+
+    if(!hasAnyLink && !parsedDate){
+      // A row with no ticket link and nothing that parses as a date is a
+      // section/category label (e.g. "Arthur Ashe", "Grounds Passes"),
+      // not an event — even if its lone value happens to sit in the same
+      // column normal rows use for the date.
+      lastSection = nonEmpty[0];
+      return;
+    }
+
+    let venue = venueIdx !== -1 ? row[venueIdx] : '';
+    if(!venue) venue = lastSection;
+
+    let name = nameIdx !== -1 ? row[nameIdx] : '';
+    if(!name) name = sessionIdx !== -1 ? row[sessionIdx] : '';
+    if(!name) name = venue || 'Untitled event';
+
+    const primaryLink = primaryLinkIdx !== -1 ? row[primaryLinkIdx] : '';
+    let primarySite = primarySiteIdx !== -1 ? row[primarySiteIdx] : '';
+    if(!primarySite && primaryLink) primarySite = inferSiteFromUrl(primaryLink);
+
+    const dateObj = parsedDate;
+
+    records.push({
+      name,
+      venue,
+      dateStr: dateVal,
+      dateObj: dateObj ? dateObj.toISOString() : null,
+      primarySite,
+      primaryLink,
+      vividLink: vividIdx !== -1 ? row[vividIdx] : '',
+      stubLink: stubIdx !== -1 ? row[stubIdx] : ''
+    });
+  });
+
+  return records;
+}
+
+// Identifies "the same event" across uploads/sheets so re-uploading an
+// overlapping CSV never creates duplicate rows. Prefer the primary ticket
+// link (most specific); fall back to name + venue + date string.
+function eventKey(ev){
+  if(ev.primaryLink && ev.primaryLink.trim()){
+    return 'pl:' + ev.primaryLink.trim().toLowerCase();
+  }
+  return 'nv:' + [ev.name, ev.venue, ev.dateStr].join('|').trim().toLowerCase();
+}
+
+// Pulls every sheet's saved events and dedupes them into one combined list
+// for the "All sheets" search scope. Each result carries the name(s) of the
+// sheet(s) it appeared in.
+async function getAllSheetsEventsMerged(){
+  const map = new Map();
+  for(const s of sheets){
+    try{
+      const res = await storageGet(`sheet:${s.id}:events`);
+      if(res && res.value){
+        const events = JSON.parse(res.value);
+        events.forEach(ev => {
+          const key = eventKey(ev);
+          if(!map.has(key)){
+            map.set(key, { event: ev, sheetNames: new Set([s.name]) });
+          } else {
+            map.get(key).sheetNames.add(s.name);
+          }
+        });
+      }
+    }catch(e){ /* skip unreadable sheet */ }
+  }
+  return Array.from(map.values()).map(({ event, sheetNames }) => ({
+    ...event,
+    _sheets: Array.from(sheetNames)
+  }));
+}
+
+// ---------- Storage ----------
+// window.storage only exists inside the Claude.ai artifact viewer. When this
+// page is hosted elsewhere (GitHub Pages, a local file, etc.) we fall back
+// to the browser's own localStorage so saving still works.
+const hasClaudeStorage = () => (typeof window.storage !== 'undefined' && window.storage && typeof window.storage.set === 'function');
+
+async function storageGet(key){
+  if(hasClaudeStorage()){
+    try{ return await window.storage.get(key, false); }
+    catch(e){ return null; }
+  }
+  const v = localStorage.getItem(key);
+  return v !== null ? { value: v } : null;
+}
+
+async function storageSet(key, value){
+  if(hasClaudeStorage()){
+    try{ return await window.storage.set(key, value, false); }
+    catch(e){ /* fall through to localStorage as backup */ }
+  }
+  localStorage.setItem(key, value);
+  return { value };
+}
+
+async function storageDelete(key){
+  if(hasClaudeStorage()){
+    try{ await window.storage.delete(key, false); return; }
+    catch(e){ /* fall through */ }
+  }
+  localStorage.removeItem(key);
+}
+
+function makeSheetId(){
+  return 'sh_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+async function persistSheetsIndex(){
+  await storageSet('sheets:index', JSON.stringify(sheets));
+}
+
+async function loadSheets(){
+  try{
+    const idxRes = await storageGet('sheets:index');
+    if(idxRes && idxRes.value){
+      sheets = JSON.parse(idxRes.value);
+    }
+  }catch(e){ sheets = []; }
+
+  if(!sheets.length){
+    const id = makeSheetId();
+    sheets = [{ id, name: 'Sheet 1', createdAt: Date.now() }];
+    await persistSheetsIndex();
+    // Migrate data saved by the earlier single-sheet version of this page, if any.
+    try{
+      const legacyEvents = await storageGet('events:data');
+      if(legacyEvents && legacyEvents.value){
+        await storageSet(`sheet:${id}:events`, legacyEvents.value);
+        const legacyMeta = await storageGet('events:meta');
+        if(legacyMeta && legacyMeta.value){
+          await storageSet(`sheet:${id}:meta`, legacyMeta.value);
+        }
+      }
+    }catch(e){ /* no legacy data, ignore */ }
+  }
+
+  let startId = sheets[0].id;
+  try{
+    const activeRes = await storageGet('sheets:active');
+    if(activeRes && activeRes.value && sheets.some(s => s.id === activeRes.value)){
+      startId = activeRes.value;
+    }
+  }catch(e){ /* ignore */ }
+
+  await setActiveSheet(startId, false);
+}
+
+async function setActiveSheet(id, persist = true){
+  activeSheetId = id;
+  if(persist) await storageSet('sheets:active', id);
+  searchScope = 'sheet';
+  scopeToggle.querySelectorAll('.scope-btn').forEach(b => b.classList.toggle('active', b.dataset.scope === 'sheet'));
+  renderTabs();
+  await loadActiveSheetEvents();
+}
+
+async function loadActiveSheetEvents(){
+  try{
+    const res = await storageGet(`sheet:${activeSheetId}:events`);
+    allEvents = (res && res.value) ? JSON.parse(res.value) : [];
+  }catch(e){ allEvents = []; }
+  try{
+    const meta = await storageGet(`sheet:${activeSheetId}:meta`);
+    if(meta && meta.value){
+      const m = JSON.parse(meta.value);
+      metaLine.textContent = `Loaded ${m.count} events · updated ${new Date(m.uploadedAt).toLocaleString()}`;
+    } else {
+      metaLine.textContent = '';
+    }
+  }catch(e){ metaLine.textContent = ''; }
+  render();
+}
+
+async function saveEventsToActiveSheet(events){
+  allEvents = events;
+  try{
+    await storageSet(`sheet:${activeSheetId}:events`, JSON.stringify(events));
+    const meta = { count: events.length, uploadedAt: new Date().toISOString() };
+    await storageSet(`sheet:${activeSheetId}:meta`, JSON.stringify(meta));
+    metaLine.textContent = `Loaded ${meta.count} events · updated ${new Date(meta.uploadedAt).toLocaleString()}`;
+  }catch(e){
+    metaLine.textContent = `Loaded ${events.length} events (not saved for next visit — storage unavailable)`;
+  }
+  render();
+}
+
+async function clearActiveSheetEvents(){
+  await storageDelete(`sheet:${activeSheetId}:events`);
+  await storageDelete(`sheet:${activeSheetId}:meta`);
+  allEvents = [];
+  metaLine.textContent = '';
+  render();
+}
+
+async function addSheet(){
+  const name = prompt('Name this sheet', `Sheet ${sheets.length + 1}`);
+  if(name === null) return;
+  const trimmed = name.trim() || `Sheet ${sheets.length + 1}`;
+  const id = makeSheetId();
+  sheets.push({ id, name: trimmed, createdAt: Date.now() });
+  await persistSheetsIndex();
+  await setActiveSheet(id);
+}
+
+async function renameSheet(id){
+  const sheet = sheets.find(s => s.id === id);
+  if(!sheet) return;
+  const name = prompt('Rename sheet', sheet.name);
+  if(name === null) return;
+  const trimmed = name.trim();
+  if(!trimmed) return;
+  sheet.name = trimmed;
+  await persistSheetsIndex();
+  renderTabs();
+}
+
+async function deleteSheet(id){
+  if(sheets.length <= 1){
+    alert("You need at least one sheet — try renaming it or clearing its data instead.");
+    return;
+  }
+  const sheet = sheets.find(s => s.id === id);
+  if(!sheet) return;
+  if(!confirm(`Delete "${sheet.name}"? This can't be undone.`)) return;
+  sheets = sheets.filter(s => s.id !== id);
+  await persistSheetsIndex();
+  await storageDelete(`sheet:${id}:events`);
+  await storageDelete(`sheet:${id}:meta`);
+  if(activeSheetId === id){
+    await setActiveSheet(sheets[0].id);
+  } else {
+    renderTabs();
+  }
+}
+
+function renderTabs(){
+  sheetTabs.innerHTML = sheets.map(s => `
+    <button class="sheet-tab ${s.id === activeSheetId ? 'active' : ''}" data-id="${s.id}" title="Double-click to rename">
+      <span class="tab-label">${escapeHtml(s.name)}</span>
+      <span class="tab-close" data-id="${s.id}" title="Delete sheet">×</span>
+    </button>
+  `).join('') + `<button class="sheet-tab add-tab" id="addSheetBtn" title="Add sheet">+</button>`;
+
+  sheetTabs.querySelectorAll('.sheet-tab:not(.add-tab)').forEach(btn => {
+    btn.addEventListener('click', e => {
+      if(e.target.classList.contains('tab-close')) return;
+      if(btn.dataset.id !== activeSheetId) setActiveSheet(btn.dataset.id);
+    });
+    btn.addEventListener('dblclick', e => {
+      if(e.target.classList.contains('tab-close')) return;
+      renameSheet(btn.dataset.id);
+    });
+  });
+  sheetTabs.querySelectorAll('.tab-close').forEach(x => {
+    x.addEventListener('click', e => {
+      e.stopPropagation();
+      deleteSheet(x.dataset.id);
+    });
+  });
+  const addBtn = document.getElementById('addSheetBtn');
+  if(addBtn) addBtn.addEventListener('click', addSheet);
+}
+
+// ---------- Rendering ----------
+function linkBtn(href, label, cls){
+  if(!href){
+    return `<span class="link-btn disabled">${label}<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>`;
+  }
+  return `<a class="link-btn ${cls}" href="${encodeURI(href)}" target="_blank" rel="noopener noreferrer">${label}<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M7 7h10v10"/></svg></a>`;
+}
+
+function dayKey(dateObj){
+  if(!dateObj) return 'Date TBD';
+  const d = new Date(dateObj);
+  return d.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
+}
+
+function isSameDay(a,b){
+  return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
+}
+
+async function render(){
+  const query = searchInput.value.trim().toLowerCase();
+  const viewEvents = searchScope === 'all' ? await getAllSheetsEventsMerged() : allEvents;
+  const hasData = viewEvents.length > 0;
+  emptyState.style.display = hasData ? 'none' : 'block';
+  clearBtn.style.display = (searchScope === 'sheet' && hasData) ? 'inline-block' : 'none';
+
+  if(!hasData){
+    listRoot.innerHTML = '';
+    countLabel.textContent = '';
+    return;
+  }
+
+  let filtered = viewEvents.filter(ev => {
+    if(!query) return true;
+    return ev.name.toLowerCase().includes(query) || ev.venue.toLowerCase().includes(query);
+  });
+
+  countLabel.textContent = `${filtered.length} of ${viewEvents.length}${searchScope === 'all' ? ' · all sheets' : ''}`;
+
+  const withDate = filtered.filter(e => e.dateObj).sort((a,b) => new Date(a.dateObj) - new Date(b.dateObj));
+  const withoutDate = filtered.filter(e => !e.dateObj);
+
+  const groups = [];
+  let currentKey = null, currentGroup = null;
+  withDate.forEach(ev => {
+    const key = dayKey(ev.dateObj);
+    if(key !== currentKey){
+      currentKey = key;
+      currentGroup = { key, events: [] };
+      groups.push(currentGroup);
+    }
+    currentGroup.events.push(ev);
+  });
+  if(withoutDate.length){
+    groups.push({ key: 'Date TBD', events: withoutDate });
+  }
+
+  if(!groups.length){
+    listRoot.innerHTML = '<div class="no-results">No events match your search.</div>';
+    return;
+  }
+
+  const now = new Date();
+  listRoot.innerHTML = groups.map(g => {
+    const firstEv = g.events[0];
+    const isToday = firstEv.dateObj && isSameDay(new Date(firstEv.dateObj), now);
+    const heading = `<div class="day-heading">${g.key}${isToday ? '<span class="tag-today">Today</span>' : ''}</div>`;
+    const tickets = g.events.map(ev => {
+      const time = ev.dateObj ? new Date(ev.dateObj).toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'}) : '';
+      const sheetTag = (searchScope === 'all' && ev._sheets)
+        ? `<div class="sheet-tag">${ev._sheets.length > 1 ? `In ${ev._sheets.length} sheets` : escapeHtml(ev._sheets[0])}</div>`
+        : '';
+      return `
+        <div class="ticket">
+          <div class="ticket-info">
+            <div class="ev-name">${escapeHtml(ev.name)}</div>
+            <div class="ev-venue">${escapeHtml(ev.venue)}</div>
+            ${time ? `<div class="ev-time">${time}</div>` : ''}
+            ${sheetTag}
+          </div>
+          <div class="perf"></div>
+          <div class="ticket-actions">
+            ${linkBtn(ev.primaryLink, siteLabel(ev.primarySite), 'primary-site')}
+            ${linkBtn(ev.vividLink, 'VividSeats', 'vivid')}
+            ${linkBtn(ev.stubLink, 'StubHub', 'stub')}
+          </div>
+        </div>`;
+    }).join('');
+    return heading + tickets;
+  }).join('');
+}
+
+function escapeHtml(str){
+  return (str || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+// ---------- Events ----------
+uploadBtn.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', e => {
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try{
+      const records = recordsFromCSV(ev.target.result);
+      if(!records.length){
+        alert('That CSV parsed but produced no rows. Check that it matches the expected format.');
+        return;
+      }
+      saveEventsToActiveSheet(records);
+    }catch(err){
+      alert('Could not read that CSV: ' + err.message);
+    }
+  };
+  reader.onerror = () => alert('Could not read that file.');
+  reader.readAsText(file);
+  fileInput.value = '';
+});
+
+clearBtn.addEventListener('click', () => {
+  const sheet = sheets.find(s => s.id === activeSheetId);
+  if(confirm(`Clear all events on "${sheet ? sheet.name : 'this sheet'}"?`)) clearActiveSheetEvents();
+});
+
+scopeToggle.addEventListener('click', e => {
+  const btn = e.target.closest('.scope-btn');
+  if(!btn || btn.dataset.scope === searchScope) return;
+  searchScope = btn.dataset.scope;
+  scopeToggle.querySelectorAll('.scope-btn').forEach(b => b.classList.toggle('active', b.dataset.scope === searchScope));
+  render();
+});
+
+searchInput.addEventListener('input', render);
+
+// Best-effort "open in background tab" behavior: we can't force this
+// (browsers intentionally don't let pages control tab focus), but calling
+// window.focus() right after window.open() pulls focus back to this tab
+// in most desktop browsers. Ctrl/Cmd/Shift-clicks and middle-clicks are
+// left alone so the browser's own native background-tab handling applies.
+listRoot.addEventListener('click', e => {
+  const link = e.target.closest('a.link-btn');
+  if(!link || link.classList.contains('disabled')) return;
+  if(e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || e.button !== 0) return;
+  e.preventDefault();
+  window.open(link.href, '_blank', 'noopener,noreferrer');
+  window.focus();
+});
+
+['dragenter','dragover'].forEach(evt => {
+  document.addEventListener(evt, e => { e.preventDefault(); dropZone.classList.add('drag'); });
+});
+['dragleave','drop'].forEach(evt => {
+  document.addEventListener(evt, e => { e.preventDefault(); dropZone.classList.remove('drag'); });
+});
+document.addEventListener('drop', e => {
+  e.preventDefault();
+  const file = e.dataTransfer.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try{
+      const records = recordsFromCSV(ev.target.result);
+      if(!records.length){
+        alert('That CSV parsed but produced no rows. Check that it matches the expected format.');
+        return;
+      }
+      saveEventsToActiveSheet(records);
+    }catch(err){
+      alert('Could not read that CSV: ' + err.message);
+    }
+  };
+  reader.onerror = () => alert('Could not read that file.');
+  reader.readAsText(file);
+});
+
+loadSheets();
+</script>
+</body>
+</html>
