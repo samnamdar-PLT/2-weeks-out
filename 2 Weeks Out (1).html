@@ -330,8 +330,8 @@
         <input type="text" id="searchInput" placeholder="Search event or venue…">
       </div>
       <div class="sort-toggle" id="sortToggle">
-        <button class="sort-btn active" data-sort="date">By date</button>
-        <button class="sort-btn" data-sort="upload">As uploaded</button>
+        <button class="sort-btn" data-sort="date">By date</button>
+        <button class="sort-btn active" data-sort="upload">As uploaded</button>
       </div>
       <button class="btn primary" id="uploadBtn">Upload CSV</button>
       <button class="btn ghost" id="clearBtn" style="display:none;">Clear data</button>
@@ -370,7 +370,7 @@ const sortToggle = $('#sortToggle');
 let allEvents = [];
 let sheets = [];
 let activeSheetId = null;
-let sortMode = 'date'; // 'date' | 'upload'
+let sortMode = 'upload'; // 'date' | 'upload'
 
 // ---------- CSV parsing ----------
 function parseCSV(text){
