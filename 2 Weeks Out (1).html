@@ -37,7 +37,7 @@
     padding:28px 24px 14px;
     border-bottom:1px solid var(--hairline);
   }
-  .header-inner{max-width:920px;margin:0 auto;}
+  .header-inner{max-width:1240px;margin:0 auto;}
   .eyebrow{
     font-family:'IBM Plex Mono',monospace;
     font-size:11px;letter-spacing:.16em;text-transform:uppercase;
@@ -86,29 +86,6 @@
   .sheet-tab.add-tab:hover{color:var(--amber);}
 
   .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px;}
-  .scope-toggle{
-    display:flex;border:1px solid var(--hairline);border-radius:8px;overflow:hidden;flex:0 0 auto;
-  }
-  .scope-btn{
-    font-family:'Inter',sans-serif;font-size:12.5px;font-weight:600;
-    padding:9px 12px;border:none;background:var(--card);color:var(--muted);
-    cursor:pointer;white-space:nowrap;
-    transition:background .15s ease, color .15s ease;
-  }
-  .scope-btn + .scope-btn{border-left:1px solid var(--hairline);}
-  .scope-btn.active{background:var(--teal);color:#0d211f;}
-  .scope-btn:not(.active):hover{background:var(--card-hover);color:var(--text);}
-  .sheet-tag{
-    font-family:'IBM Plex Mono',monospace;
-    font-size:10px;letter-spacing:.04em;text-transform:uppercase;
-    color:var(--muted);
-    border:1px solid var(--hairline);
-    border-radius:4px;
-    padding:2px 6px;
-    display:inline-block;
-    margin-top:2px;
-    width:fit-content;
-  }
   .search-wrap{position:relative;flex:1 1 240px;min-width:180px;}
   .search-wrap input{
     width:100%;
@@ -144,7 +121,14 @@
   }
 
   /* ---------- Body / list ---------- */
-  main{max-width:920px;margin:0 auto;padding:22px 24px 80px;}
+  main{max-width:1240px;margin:0 auto;padding:22px 24px 80px;}
+
+  .day-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(360px, 1fr));
+    gap:12px;
+    margin-bottom:4px;
+  }
 
   .day-heading{
     position:sticky;top:var(--header-h, 150px);
@@ -170,7 +154,6 @@
     background:var(--card);
     border:1px solid var(--hairline);
     border-radius:10px;
-    margin-bottom:12px;
     overflow:hidden;
     transition:border-color .15s ease;
   }
@@ -223,9 +206,12 @@
     gap:6px;
     padding:14px;
     justify-content:center;
-    min-width:150px;
+    min-width:190px;
   }
+  .link-row{display:flex;gap:5px;}
   .link-btn{
+    flex:1 1 auto;
+    min-width:0;
     display:flex;align-items:center;justify-content:space-between;
     gap:8px;
     font-family:'Inter',sans-serif;
@@ -243,12 +229,27 @@
   .link-btn.vivid{background:var(--teal);}
   .link-btn.stub{background:var(--coral);}
   .link-btn svg{flex:0 0 auto;opacity:.75;}
-  .link-btn.disabled{
+  .copy-btn{
+    flex:0 0 auto;
+    display:flex;align-items:center;justify-content:center;
+    width:30px;
+    border-radius:6px;
+    border:1px solid var(--hairline);
     background:transparent;
-    border:1px dashed var(--hairline);
     color:var(--muted);
-    cursor:default;
-    pointer-events:none;
+    cursor:pointer;
+    padding:0;
+    transition:background .15s ease, color .15s ease, border-color .15s ease;
+  }
+  .copy-btn:hover{color:var(--text);border-color:var(--muted);background:var(--card-hover);}
+  .copy-btn .icon-check{display:none;}
+  .copy-btn.copied{color:var(--teal);border-color:var(--teal);}
+  .copy-btn.copied .icon-copy{display:none;}
+  .copy-btn.copied .icon-check{display:block;}
+  .no-links{
+    font-family:'Inter',sans-serif;
+    font-size:12.5px;color:var(--muted);
+    padding:8px 10px;
   }
 
   /* ---------- Empty state ---------- */
@@ -281,7 +282,7 @@
     .perf::before{top:auto;left:-9px;bottom:-9px;}
     .perf::after{left:auto;right:-9px;bottom:-9px;top:auto;}
     .ticket-actions{flex-direction:row;flex-wrap:wrap;min-width:0;}
-    .link-btn{flex:1 1 30%;}
+    .link-row{flex:1 1 30%;}
   }
 </style>
 </head>
@@ -296,10 +297,6 @@
       <div class="search-wrap">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input type="text" id="searchInput" placeholder="Search event or venue…">
-      </div>
-      <div class="scope-toggle" id="scopeToggle">
-        <button class="scope-btn active" data-scope="sheet">This sheet</button>
-        <button class="scope-btn" data-scope="all">All sheets</button>
       </div>
       <button class="btn primary" id="uploadBtn">Upload CSV</button>
       <button class="btn ghost" id="clearBtn" style="display:none;">Clear data</button>
@@ -331,13 +328,11 @@ const searchInput = $('#searchInput');
 const countLabel = $('#countLabel');
 const metaLine = $('#metaLine');
 const sheetTabs = $('#sheetTabs');
-const scopeToggle = $('#scopeToggle');
 const siteHeader = $('#siteHeader');
 
 let allEvents = [];
 let sheets = [];
 let activeSheetId = null;
-let searchScope = 'sheet'; // 'sheet' | 'all'
 
 // Keep the sticky day-section headers positioned exactly below the real
 // header, whatever its current height is (it changes as tabs wrap, the
@@ -351,6 +346,11 @@ if(typeof ResizeObserver !== 'undefined'){
   window.addEventListener('resize', syncHeaderHeight);
 }
 syncHeaderHeight();
+// The header uses custom web fonts; once they finish loading the header's
+// real height can shift, so re-sync once they're ready too.
+if(document.fonts && document.fonts.ready){
+  document.fonts.ready.then(syncHeaderHeight).catch(() => {});
+}
 
 // ---------- CSV parsing ----------
 function parseCSV(text){
@@ -517,43 +517,6 @@ function recordsFromCSV(text){
   return records;
 }
 
-// Identifies "the same event" across uploads/sheets so re-uploading an
-// overlapping CSV never creates duplicate rows. Prefer the primary ticket
-// link (most specific); fall back to name + venue + date string.
-function eventKey(ev){
-  if(ev.primaryLink && ev.primaryLink.trim()){
-    return 'pl:' + ev.primaryLink.trim().toLowerCase();
-  }
-  return 'nv:' + [ev.name, ev.venue, ev.dateStr].join('|').trim().toLowerCase();
-}
-
-// Pulls every sheet's saved events and dedupes them into one combined list
-// for the "All sheets" search scope. Each result carries the name(s) of the
-// sheet(s) it appeared in.
-async function getAllSheetsEventsMerged(){
-  const map = new Map();
-  for(const s of sheets){
-    try{
-      const res = await storageGet(`sheet:${s.id}:events`);
-      if(res && res.value){
-        const events = JSON.parse(res.value);
-        events.forEach(ev => {
-          const key = eventKey(ev);
-          if(!map.has(key)){
-            map.set(key, { event: ev, sheetNames: new Set([s.name]) });
-          } else {
-            map.get(key).sheetNames.add(s.name);
-          }
-        });
-      }
-    }catch(e){ /* skip unreadable sheet */ }
-  }
-  return Array.from(map.values()).map(({ event, sheetNames }) => ({
-    ...event,
-    _sheets: Array.from(sheetNames)
-  }));
-}
-
 // ---------- Storage ----------
 // window.storage only exists inside the Claude.ai artifact viewer. When this
 // page is hosted elsewhere (GitHub Pages, a local file, etc.) we fall back
@@ -633,8 +596,6 @@ async function loadSheets(){
 async function setActiveSheet(id, persist = true){
   activeSheetId = id;
   if(persist) await storageSet('sheets:active', id);
-  searchScope = 'sheet';
-  scopeToggle.querySelectorAll('.scope-btn').forEach(b => b.classList.toggle('active', b.dataset.scope === 'sheet'));
   renderTabs();
   await loadActiveSheetEvents();
 }
@@ -747,11 +708,16 @@ function renderTabs(){
 }
 
 // ---------- Rendering ----------
-function linkBtn(href, label, cls){
-  if(!href){
-    return `<span class="link-btn disabled">${label}<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>`;
-  }
-  return `<a class="link-btn ${cls}" href="${encodeURI(href)}" target="_blank" rel="noopener noreferrer">${label}<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M7 7h10v10"/></svg></a>`;
+function linkRow(href, label, cls){
+  if(!href) return '';
+  return `
+    <div class="link-row">
+      <a class="link-btn ${cls}" href="${encodeURI(href)}" target="_blank" rel="noopener noreferrer">${label}<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M7 7h10v10"/></svg></a>
+      <button type="button" class="copy-btn" data-href="${escapeHtml(href)}" title="Copy ${escapeHtml(label)} link" aria-label="Copy ${escapeHtml(label)} link">
+        <svg class="icon-copy" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <svg class="icon-check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+      </button>
+    </div>`;
 }
 
 function dayKey(dateObj){
@@ -764,12 +730,11 @@ function isSameDay(a,b){
   return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
 }
 
-async function render(){
+function render(){
   const query = searchInput.value.trim().toLowerCase();
-  const viewEvents = searchScope === 'all' ? await getAllSheetsEventsMerged() : allEvents;
-  const hasData = viewEvents.length > 0;
+  const hasData = allEvents.length > 0;
   emptyState.style.display = hasData ? 'none' : 'block';
-  clearBtn.style.display = (searchScope === 'sheet' && hasData) ? 'inline-block' : 'none';
+  clearBtn.style.display = hasData ? 'inline-block' : 'none';
 
   if(!hasData){
     listRoot.innerHTML = '';
@@ -777,12 +742,12 @@ async function render(){
     return;
   }
 
-  let filtered = viewEvents.filter(ev => {
+  let filtered = allEvents.filter(ev => {
     if(!query) return true;
     return ev.name.toLowerCase().includes(query) || ev.venue.toLowerCase().includes(query);
   });
 
-  countLabel.textContent = `${filtered.length} of ${viewEvents.length}${searchScope === 'all' ? ' · all sheets' : ''}`;
+  countLabel.textContent = `${filtered.length} of ${allEvents.length}`;
 
   const withDate = filtered.filter(e => e.dateObj).sort((a,b) => new Date(a.dateObj) - new Date(b.dateObj));
   const withoutDate = filtered.filter(e => !e.dateObj);
@@ -813,27 +778,32 @@ async function render(){
     const isToday = firstEv.dateObj && isSameDay(new Date(firstEv.dateObj), now);
     const heading = `<div class="day-heading">${g.key}${isToday ? '<span class="tag-today">Today</span>' : ''}</div>`;
     const tickets = g.events.map(ev => {
-      const time = ev.dateObj ? new Date(ev.dateObj).toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'}) : '';
-      const sheetTag = (searchScope === 'all' && ev._sheets)
-        ? `<div class="sheet-tag">${ev._sheets.length > 1 ? `In ${ev._sheets.length} sheets` : escapeHtml(ev._sheets[0])}</div>`
+      // Full date + time inside the card itself, not just the time, so
+      // each card reads on its own even if separated from its section
+      // heading (e.g. after a search filter).
+      const dateTime = ev.dateObj
+        ? new Date(ev.dateObj).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' }) +
+          ' · ' + new Date(ev.dateObj).toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'})
         : '';
+      const buttons = [
+        linkRow(ev.primaryLink, siteLabel(ev.primarySite), 'primary-site'),
+        linkRow(ev.vividLink, 'VividSeats', 'vivid'),
+        linkRow(ev.stubLink, 'StubHub', 'stub')
+      ].filter(Boolean).join('');
       return `
         <div class="ticket">
           <div class="ticket-info">
             <div class="ev-name">${escapeHtml(ev.name)}</div>
             <div class="ev-venue">${escapeHtml(ev.venue)}</div>
-            ${time ? `<div class="ev-time">${time}</div>` : ''}
-            ${sheetTag}
+            ${dateTime ? `<div class="ev-time">${dateTime}</div>` : ''}
           </div>
           <div class="perf"></div>
           <div class="ticket-actions">
-            ${linkBtn(ev.primaryLink, siteLabel(ev.primarySite), 'primary-site')}
-            ${linkBtn(ev.vividLink, 'VividSeats', 'vivid')}
-            ${linkBtn(ev.stubLink, 'StubHub', 'stub')}
+            ${buttons || '<span class="no-links">No ticket links yet</span>'}
           </div>
         </div>`;
     }).join('');
-    return heading + tickets;
+    return heading + `<div class="day-grid">${tickets}</div>`;
   }).join('');
 }
 
@@ -869,24 +839,54 @@ clearBtn.addEventListener('click', () => {
   if(confirm(`Clear all events on "${sheet ? sheet.name : 'this sheet'}"?`)) clearActiveSheetEvents();
 });
 
-scopeToggle.addEventListener('click', e => {
-  const btn = e.target.closest('.scope-btn');
-  if(!btn || btn.dataset.scope === searchScope) return;
-  searchScope = btn.dataset.scope;
-  scopeToggle.querySelectorAll('.scope-btn').forEach(b => b.classList.toggle('active', b.dataset.scope === searchScope));
-  render();
-});
-
 searchInput.addEventListener('input', render);
 
-// Best-effort "open in background tab" behavior: we can't force this
-// (browsers intentionally don't let pages control tab focus), but calling
-// window.focus() right after window.open() pulls focus back to this tab
-// in most desktop browsers. Ctrl/Cmd/Shift-clicks and middle-clicks are
-// left alone so the browser's own native background-tab handling applies.
-listRoot.addEventListener('click', e => {
+// Copies a ticket link to the clipboard and briefly shows a checkmark on
+// the button that triggered it. Falls back to a hidden-textarea copy for
+// browsers/contexts (e.g. non-HTTPS) where the async clipboard API is
+// unavailable.
+async function copyToClipboard(text){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    try{ await navigator.clipboard.writeText(text); return true; }
+    catch(e){ /* fall through to legacy method */ }
+  }
+  try{
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    return true;
+  }catch(e){
+    return false;
+  }
+}
+
+listRoot.addEventListener('click', async e => {
+  const copyBtn = e.target.closest('.copy-btn');
+  if(copyBtn){
+    const ok = await copyToClipboard(copyBtn.dataset.href);
+    if(ok){
+      copyBtn.classList.add('copied');
+      clearTimeout(copyBtn._copyTimeout);
+      copyBtn._copyTimeout = setTimeout(() => copyBtn.classList.remove('copied'), 1400);
+    } else {
+      alert('Could not copy that link — your browser may be blocking clipboard access.');
+    }
+    return;
+  }
+
+  // Best-effort "open in background tab" behavior: we can't force this
+  // (browsers intentionally don't let pages control tab focus), but calling
+  // window.focus() right after window.open() pulls focus back to this tab
+  // in most desktop browsers. Ctrl/Cmd/Shift-clicks and middle-clicks are
+  // left alone so the browser's own native background-tab handling applies.
   const link = e.target.closest('a.link-btn');
-  if(!link || link.classList.contains('disabled')) return;
+  if(!link) return;
   if(e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || e.button !== 0) return;
   e.preventDefault();
   window.open(link.href, '_blank', 'noopener,noreferrer');
