@@ -19,14 +19,21 @@
     --teal:#4fc8bf;
     --coral:#ff6b6a;
     --today:#e8543f;
+    --tm-blue:#0a5cff;
+    --vivid-pink:#ff3d81;
+    --stub-orange:#ff7a1a;
   }
   *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;}
+  html,body{margin:0;padding:0;height:100%;}
   body{
     background:var(--bg);
     color:var(--text);
     font-family:'Inter',sans-serif;
-    min-height:100vh;
+    height:100vh;
+    height:100dvh;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
   }
   ::selection{background:var(--amber);color:#121214;}
 
@@ -38,8 +45,8 @@
 
   /* ---------- Header ---------- */
   header{
-    position:sticky;top:0;z-index:20;
-    background:linear-gradient(180deg,var(--bg) 80%,rgba(18,18,20,0));
+    flex:0 0 auto;
+    background:var(--bg);
     padding:28px 24px 14px;
     border-bottom:1px solid var(--hairline);
   }
@@ -92,6 +99,18 @@
   .sheet-tab.add-tab:hover{color:var(--amber);}
 
   .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px;}
+  .sort-toggle{
+    display:flex;border:1px solid var(--hairline);border-radius:8px;overflow:hidden;flex:0 0 auto;
+  }
+  .sort-btn{
+    font-family:'Inter',sans-serif;font-size:12.5px;font-weight:600;
+    padding:9px 12px;border:none;background:var(--card);color:var(--muted);
+    cursor:pointer;white-space:nowrap;
+    transition:background .15s ease, color .15s ease;
+  }
+  .sort-btn + .sort-btn{border-left:1px solid var(--hairline);}
+  .sort-btn.active{background:var(--teal);color:#0d211f;}
+  .sort-btn:not(.active):hover{background:var(--card-hover);color:var(--text);}
   .search-wrap{position:relative;flex:1 1 240px;min-width:180px;}
   .search-wrap input{
     width:100%;
@@ -127,7 +146,12 @@
   }
 
   /* ---------- Body / list ---------- */
-  main{max-width:1240px;margin:0 auto;padding:22px 24px 80px;}
+  main{
+    flex:1 1 auto;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+  .main-inner{max-width:1240px;margin:0 auto;padding:22px 24px 80px;}
 
   .day-grid{
     display:grid;
@@ -137,7 +161,7 @@
   }
 
   .day-heading{
-    position:sticky;top:var(--header-h, 150px);
+    position:sticky;top:0;
     background:var(--bg);
     font-family:'Bebas Neue',sans-serif;
     font-size:22px;letter-spacing:.02em;
@@ -231,9 +255,10 @@
   }
   .link-btn:hover{filter:brightness(1.1);}
   .link-btn:active{transform:scale(.98);}
-  .link-btn.primary-site{background:var(--amber);}
-  .link-btn.vivid{background:var(--teal);}
-  .link-btn.stub{background:var(--coral);}
+  .link-btn.site-tm{background:var(--tm-blue);color:#fff;}
+  .link-btn.site-vivid{background:var(--vivid-pink);color:#fff;}
+  .link-btn.site-stub{background:var(--stub-orange);color:#fff;}
+  .link-btn.site-other{background:var(--amber);color:#141316;}
   .link-btn svg{flex:0 0 auto;opacity:.75;}
   .copy-btn{
     flex:0 0 auto;
@@ -304,6 +329,10 @@
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input type="text" id="searchInput" placeholder="Search event or venue…">
       </div>
+      <div class="sort-toggle" id="sortToggle">
+        <button class="sort-btn active" data-sort="date">By date</button>
+        <button class="sort-btn" data-sort="upload">As uploaded</button>
+      </div>
       <button class="btn primary" id="uploadBtn">Upload CSV</button>
       <button class="btn ghost" id="clearBtn" style="display:none;">Clear data</button>
       <input type="file" id="fileInput" accept=".csv">
@@ -313,13 +342,15 @@
 </header>
 
 <main id="main">
-  <div class="empty" id="emptyState">
-    <div class="ticket-icon">🎟️</div>
-    <h2>This sheet is empty</h2>
-    <p>Upload a CSV — same format every time — and it becomes this sheet's data, exactly as uploaded, replacing whatever was there before. It stays saved until you upload again or delete it.</p>
-    <div class="drop-zone" id="dropZone">Drag a CSV here, or use the Upload CSV button above</div>
+  <div class="main-inner">
+    <div class="empty" id="emptyState">
+      <div class="ticket-icon">🎟️</div>
+      <h2>This sheet is empty</h2>
+      <p>Upload a CSV — same format every time — and it becomes this sheet's data, exactly as uploaded, replacing whatever was there before. It stays saved until you upload again or delete it.</p>
+      <div class="drop-zone" id="dropZone">Drag a CSV here, or use the Upload CSV button above</div>
+    </div>
+    <div id="listRoot"></div>
   </div>
-  <div id="listRoot"></div>
 </main>
 
 <script>
@@ -334,29 +365,12 @@ const searchInput = $('#searchInput');
 const countLabel = $('#countLabel');
 const metaLine = $('#metaLine');
 const sheetTabs = $('#sheetTabs');
-const siteHeader = $('#siteHeader');
+const sortToggle = $('#sortToggle');
 
 let allEvents = [];
 let sheets = [];
 let activeSheetId = null;
-
-// Keep the sticky day-section headers positioned exactly below the real
-// header, whatever its current height is (it changes as tabs wrap, the
-// meta line updates, or the window is resized).
-function syncHeaderHeight(){
-  document.documentElement.style.setProperty('--header-h', siteHeader.offsetHeight + 'px');
-}
-if(typeof ResizeObserver !== 'undefined'){
-  new ResizeObserver(syncHeaderHeight).observe(siteHeader);
-} else {
-  window.addEventListener('resize', syncHeaderHeight);
-}
-syncHeaderHeight();
-// The header uses custom web fonts; once they finish loading the header's
-// real height can shift, so re-sync once they're ready too.
-if(document.fonts && document.fonts.ready){
-  document.fonts.ready.then(syncHeaderHeight).catch(() => {});
-}
+let sortMode = 'date'; // 'date' | 'upload'
 
 // ---------- CSV parsing ----------
 function parseCSV(text){
@@ -460,6 +474,17 @@ function siteLabel(site){
   if(s === 'ticketmaster') return 'Ticketmaster';
   if(s === 'axs') return 'AXS';
   return site.charAt(0).toUpperCase() + site.slice(1);
+}
+
+// Picks the button color for the "primary" ticket link based on which
+// site it actually is (a sheet's Primary Site is usually Ticketmaster or
+// AXS, but could occasionally resolve to VividSeats/StubHub too).
+function siteClass(site){
+  const s = (site || '').trim().toLowerCase();
+  if(s === 'ticketmaster') return 'site-tm';
+  if(s === 'vividseats') return 'site-vivid';
+  if(s === 'stubhub') return 'site-stub';
+  return 'site-other';
 }
 
 function recordsFromCSV(text){
@@ -736,6 +761,47 @@ function isSameDay(a,b){
   return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
 }
 
+// Chronological grouping: one group per calendar day, sorted earliest first.
+function groupByDate(events){
+  const withDate = events.filter(e => e.dateObj).sort((a,b) => new Date(a.dateObj) - new Date(b.dateObj));
+  const withoutDate = events.filter(e => !e.dateObj);
+
+  const groups = [];
+  let currentKey = null, currentGroup = null;
+  withDate.forEach(ev => {
+    const key = dayKey(ev.dateObj);
+    if(key !== currentKey){
+      currentKey = key;
+      currentGroup = { heading: key, showTodayTag: true, events: [] };
+      groups.push(currentGroup);
+    }
+    currentGroup.events.push(ev);
+  });
+  if(withoutDate.length){
+    groups.push({ heading: 'Date TBD', showTodayTag: false, events: withoutDate });
+  }
+  return groups;
+}
+
+// Preserves the exact row order from the CSV, grouping consecutive rows
+// that share a venue — this keeps blocks like "Arthur Ashe" / "Louis
+// Armstrong" / "Grandstand" together the way they appeared in the sheet,
+// instead of interleaving them by date.
+function groupByUploadOrder(events){
+  const groups = [];
+  let currentKey = null, currentGroup = null;
+  events.forEach(ev => {
+    const key = (ev.venue && ev.venue.trim()) ? ev.venue.trim() : 'Other';
+    if(key !== currentKey){
+      currentKey = key;
+      currentGroup = { heading: key, showTodayTag: false, events: [] };
+      groups.push(currentGroup);
+    }
+    currentGroup.events.push(ev);
+  });
+  return groups;
+}
+
 function render(){
   const query = searchInput.value.trim().toLowerCase();
   const hasData = allEvents.length > 0;
@@ -748,6 +814,8 @@ function render(){
     return;
   }
 
+  // allEvents.filter preserves original array order, which is what
+  // "As uploaded" mode relies on.
   let filtered = allEvents.filter(ev => {
     if(!query) return true;
     return ev.name.toLowerCase().includes(query) || ev.venue.toLowerCase().includes(query);
@@ -755,23 +823,7 @@ function render(){
 
   countLabel.textContent = `${filtered.length} of ${allEvents.length}`;
 
-  const withDate = filtered.filter(e => e.dateObj).sort((a,b) => new Date(a.dateObj) - new Date(b.dateObj));
-  const withoutDate = filtered.filter(e => !e.dateObj);
-
-  const groups = [];
-  let currentKey = null, currentGroup = null;
-  withDate.forEach(ev => {
-    const key = dayKey(ev.dateObj);
-    if(key !== currentKey){
-      currentKey = key;
-      currentGroup = { key, events: [] };
-      groups.push(currentGroup);
-    }
-    currentGroup.events.push(ev);
-  });
-  if(withoutDate.length){
-    groups.push({ key: 'Date TBD', events: withoutDate });
-  }
+  const groups = sortMode === 'upload' ? groupByUploadOrder(filtered) : groupByDate(filtered);
 
   if(!groups.length){
     listRoot.innerHTML = '<div class="no-results">No events match your search.</div>';
@@ -781,20 +833,20 @@ function render(){
   const now = new Date();
   listRoot.innerHTML = groups.map(g => {
     const firstEv = g.events[0];
-    const isToday = firstEv.dateObj && isSameDay(new Date(firstEv.dateObj), now);
-    const heading = `<div class="day-heading">${g.key}${isToday ? '<span class="tag-today">Today</span>' : ''}</div>`;
+    const isToday = g.showTodayTag && firstEv.dateObj && isSameDay(new Date(firstEv.dateObj), now);
+    const heading = `<div class="day-heading">${escapeHtml(g.heading)}${isToday ? '<span class="tag-today">Today</span>' : ''}</div>`;
     const tickets = g.events.map(ev => {
       // Full date + time inside the card itself, not just the time, so
-      // each card reads on its own even if separated from its section
-      // heading (e.g. after a search filter).
+      // each card reads on its own even without a date-based heading
+      // above it (e.g. in "As uploaded" mode).
       const dateTime = ev.dateObj
         ? new Date(ev.dateObj).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' }) +
           ' · ' + new Date(ev.dateObj).toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'})
         : '';
       const buttons = [
-        linkRow(ev.primaryLink, siteLabel(ev.primarySite), 'primary-site'),
-        linkRow(ev.vividLink, 'VividSeats', 'vivid'),
-        linkRow(ev.stubLink, 'StubHub', 'stub')
+        linkRow(ev.primaryLink, siteLabel(ev.primarySite), siteClass(ev.primarySite)),
+        linkRow(ev.vividLink, 'VividSeats', 'site-vivid'),
+        linkRow(ev.stubLink, 'StubHub', 'site-stub')
       ].filter(Boolean).join('');
       return `
         <div class="ticket">
@@ -846,6 +898,14 @@ clearBtn.addEventListener('click', () => {
 });
 
 searchInput.addEventListener('input', render);
+
+sortToggle.addEventListener('click', e => {
+  const btn = e.target.closest('.sort-btn');
+  if(!btn || btn.dataset.sort === sortMode) return;
+  sortMode = btn.dataset.sort;
+  sortToggle.querySelectorAll('.sort-btn').forEach(b => b.classList.toggle('active', b.dataset.sort === sortMode));
+  render();
+});
 
 // Copies a ticket link to the clipboard and briefly shows a checkmark on
 // the button that triggered it. Falls back to a hidden-textarea copy for
