@@ -347,6 +347,36 @@
   }
   .notes-textarea:focus{border-color:var(--teal);}
 
+  /* ---------- Cloud sync ---------- */
+  .sync-wrap{position:relative;flex:0 0 auto;}
+  #syncToggleBtn.connected{border-color:var(--teal);color:var(--teal);}
+  .sync-popover{
+    position:absolute;top:calc(100% + 8px);right:0;
+    width:300px;
+    background:var(--card);
+    border:1px solid var(--hairline);
+    border-radius:10px;
+    box-shadow:0 16px 32px rgba(0,0,0,.45);
+    padding:14px;
+    display:none;
+    z-index:40;
+  }
+  .sync-popover.open{display:block;}
+  .sync-popover input{
+    width:100%;
+    background:var(--bg);border:1px solid var(--hairline);border-radius:6px;
+    color:var(--text);font-family:'Inter',sans-serif;font-size:12.5px;
+    padding:8px 10px;outline:none;margin-bottom:10px;
+  }
+  .sync-popover input:focus{border-color:var(--amber);}
+  .sync-actions{display:flex;gap:8px;}
+  .sync-status{
+    font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--muted);
+    margin:10px 0 0;line-height:1.5;
+  }
+  .sync-status.error{color:var(--coral);}
+  .sync-status.ok{color:var(--teal);}
+
   /* ---------- Empty state ---------- */
   .empty{
     max-width:520px;margin:80px auto;text-align:center;
@@ -407,6 +437,18 @@
       <button class="btn primary" id="uploadBtn">Upload CSV</button>
       <button class="btn ghost" id="clearBtn" style="display:none;">Clear data</button>
       <input type="file" id="fileInput" accept=".csv">
+      <div class="sync-wrap">
+        <button class="btn ghost" id="syncToggleBtn" title="Sync with Google Sheets">☁ Sync</button>
+        <div class="sync-popover" id="syncPopover">
+          <p class="notes-label">Google Sheets sync</p>
+          <input type="text" id="syncUrlInput" placeholder="Paste your Apps Script Web App URL…">
+          <div class="sync-actions">
+            <button class="btn primary" id="syncConnectBtn" type="button">Connect</button>
+            <button class="btn ghost" id="syncDisconnectBtn" type="button" style="display:none;">Disconnect</button>
+          </div>
+          <p class="sync-status" id="syncStatus">Not connected.</p>
+        </div>
+      </div>
     </div>
     <p class="meta-line" id="metaLine"></p>
   </div>
@@ -441,6 +483,12 @@ const sortToggle = $('#sortToggle');
 const colMinus = $('#colMinus');
 const colPlus = $('#colPlus');
 const colCount = $('#colCount');
+const syncToggleBtn = $('#syncToggleBtn');
+const syncPopover = $('#syncPopover');
+const syncUrlInput = $('#syncUrlInput');
+const syncConnectBtn = $('#syncConnectBtn');
+const syncDisconnectBtn = $('#syncDisconnectBtn');
+const syncStatus = $('#syncStatus');
 
 let allEvents = [];
 let sheets = [];
@@ -481,6 +529,211 @@ colPlus.addEventListener('click', () => {
   applyColumnCount();
   storageSet('ui:columns', String(columnCount));
 });
+
+// ---------- Google Sheets sync ----------
+// Not real-time (Sheets has no push channel to arbitrary web pages) —
+// this pushes local changes immediately, and polls the Sheet periodically
+// (plus whenever the tab regains focus) to pull in anything edited
+// directly in the spreadsheet. See Code.gs for the Apps Script backend.
+let syncUrl = null;
+let syncTimer = null;
+const SYNC_POLL_MS = 20000;
+const lastPushedSnapshot = {};   // sheetName -> JSON string we last sent
+const lastAppliedSnapshot = {};  // sheetName -> JSON string we last pulled in
+
+function setSyncStatus(text, kind){
+  syncStatus.textContent = text;
+  syncStatus.classList.remove('ok', 'error');
+  if(kind) syncStatus.classList.add(kind);
+}
+
+function updateSyncButtonState(){
+  const connected = !!syncUrl;
+  syncToggleBtn.classList.toggle('connected', connected);
+  syncToggleBtn.textContent = connected ? '☁ Synced' : '☁ Sync';
+  syncConnectBtn.style.display = connected ? 'none' : 'inline-block';
+  syncDisconnectBtn.style.display = connected ? 'inline-block' : 'none';
+}
+
+async function loadSyncSettings(){
+  try{
+    const res = await storageGet('ui:syncUrl');
+    if(res && res.value){
+      syncUrl = res.value;
+      syncUrlInput.value = syncUrl;
+      updateSyncButtonState();
+      setSyncStatus('Connected. Syncing…', 'ok');
+      startSyncPolling();
+    }
+  }catch(e){ /* not connected */ }
+}
+
+function startSyncPolling(){
+  clearInterval(syncTimer);
+  pollRemote();
+  syncTimer = setInterval(pollRemote, SYNC_POLL_MS);
+}
+function stopSyncPolling(){
+  clearInterval(syncTimer);
+  syncTimer = null;
+}
+
+syncToggleBtn.addEventListener('click', e => {
+  e.stopPropagation();
+  syncPopover.classList.toggle('open');
+});
+syncPopover.addEventListener('click', e => e.stopPropagation());
+document.addEventListener('click', () => syncPopover.classList.remove('open'));
+
+syncConnectBtn.addEventListener('click', async () => {
+  const url = syncUrlInput.value.trim();
+  if(!url){ setSyncStatus('Paste your Web App URL first.', 'error'); return; }
+  setSyncStatus('Connecting…');
+  try{
+    const res = await fetch(url, { method: 'GET' });
+    const data = await res.json();
+    if(!data || !Array.isArray(data.events)){ throw new Error('Unexpected response'); }
+    syncUrl = url;
+    await storageSet('ui:syncUrl', url);
+    updateSyncButtonState();
+    setSyncStatus('Connected. Syncing…', 'ok');
+    startSyncPolling();
+    await pushActiveSheetToRemote(); // register current sheet right away
+  }catch(err){
+    setSyncStatus('Could not connect — check the URL and that the deployment is set to "Anyone".', 'error');
+  }
+});
+
+syncDisconnectBtn.addEventListener('click', async () => {
+  syncUrl = null;
+  await storageDelete('ui:syncUrl');
+  stopSyncPolling();
+  updateSyncButtonState();
+  setSyncStatus('Not connected.');
+});
+
+window.addEventListener('focus', () => { if(syncUrl) pollRemote(); });
+
+function activeSheetName(){
+  const s = sheets.find(s => s.id === activeSheetId);
+  return s ? s.name : '';
+}
+
+// Pushes the currently-loaded sheet's events (with notes merged in) to the
+// Sheet. Called after any local change so the round trip starts quickly.
+async function pushActiveSheetToRemote(){
+  if(!syncUrl) return;
+  const name = activeSheetName();
+  if(!name) return;
+  const payloadEvents = allEvents.map(ev => ({ ...ev, note: notes[eventKey(ev)] || '' }));
+  const snapshot = JSON.stringify(payloadEvents);
+  if(lastPushedSnapshot[name] === snapshot) return; // nothing changed
+  lastPushedSnapshot[name] = snapshot;
+  try{
+    const res = await fetch(syncUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // avoids a CORS preflight Apps Script can't answer
+      body: JSON.stringify({ action: 'replaceSheet', appSheet: name, events: payloadEvents })
+    });
+    const data = await res.json();
+    if(data && Array.isArray(data.events)){
+      lastAppliedSnapshot[name] = JSON.stringify(data.events.filter(e => e.appSheet === name));
+    }
+    setSyncStatus(`Synced ${new Date().toLocaleTimeString()}`, 'ok');
+  }catch(err){
+    setSyncStatus('Last push failed — will retry on next change.', 'error');
+  }
+}
+
+async function pushSheetRename(oldName, newName){
+  if(!syncUrl || !oldName || oldName === newName) return;
+  try{
+    await fetch(syncUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'renameSheet', oldName, newName })
+    });
+  }catch(e){ /* will reconcile on next poll */ }
+}
+
+async function pushSheetDelete(name){
+  if(!syncUrl || !name) return;
+  try{
+    await fetch(syncUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'deleteSheet', appSheet: name })
+    });
+  }catch(e){ /* will reconcile on next poll */ }
+}
+
+// Pulls the full dataset from the Sheet and, for any app-sheet whose data
+// differs from what we last pushed/pulled (i.e. a genuine external edit,
+// not an echo of our own change), applies it locally and re-renders.
+async function pollRemote(){
+  if(!syncUrl) return;
+  let data;
+  try{
+    const res = await fetch(syncUrl, { method: 'GET' });
+    data = await res.json();
+  }catch(err){
+    setSyncStatus('Sync check failed — will retry.', 'error');
+    return;
+  }
+  if(!data || !Array.isArray(data.events)) return;
+
+  const byName = {};
+  data.events.forEach(ev => {
+    if(!byName[ev.appSheet]) byName[ev.appSheet] = [];
+    byName[ev.appSheet].push(ev);
+  });
+
+  for(const name of Object.keys(byName)){
+    const remoteEvents = byName[name];
+    const snapshot = JSON.stringify(remoteEvents);
+    if(snapshot === lastPushedSnapshot[name] || snapshot === lastAppliedSnapshot[name]) continue;
+    lastAppliedSnapshot[name] = snapshot;
+    await applyRemoteSheet(name, remoteEvents);
+  }
+  setSyncStatus(`Synced ${new Date().toLocaleTimeString()}`, 'ok');
+}
+
+// Writes remote data for one app-sheet into local storage (creating the
+// sheet locally if it doesn't exist yet), and refreshes the view if it's
+// the sheet currently on screen.
+async function applyRemoteSheet(name, remoteEvents){
+  let sheet = sheets.find(s => s.name === name);
+  if(!sheet){
+    sheet = { id: makeSheetId(), name, createdAt: Date.now() };
+    sheets.push(sheet);
+    await persistSheetsIndex();
+    renderTabs();
+  }
+
+  const localEvents = remoteEvents.map(ev => {
+    const parsed = parseEventDate(ev.dateStr);
+    return {
+      name: ev.name, venue: ev.venue, dateStr: ev.dateStr,
+      dateObj: parsed ? parsed.toISOString() : null,
+      primarySite: ev.primarySite, primaryLink: ev.primaryLink,
+      vividLink: ev.vividLink, stubLink: ev.stubLink
+    };
+  });
+  const localNotes = {};
+  remoteEvents.forEach((ev, idx) => {
+    if(ev.note) localNotes[eventKey(localEvents[idx])] = ev.note;
+  });
+
+  await storageSet(`sheet:${sheet.id}:events`, JSON.stringify(localEvents));
+  await storageSet(`sheet:${sheet.id}:notes`, JSON.stringify(localNotes));
+  await storageSet(`sheet:${sheet.id}:meta`, JSON.stringify({ count: localEvents.length, uploadedAt: new Date().toISOString() }));
+
+  if(sheet.id === activeSheetId){
+    allEvents = localEvents;
+    notes = localNotes;
+    render();
+  }
+}
 
 // ---------- CSV parsing ----------
 function parseCSV(text){
@@ -784,6 +1037,7 @@ function saveNotesSoon(){
 async function saveNotesNow(){
   clearTimeout(saveNotesTimer);
   try{ await storageSet(`sheet:${activeSheetId}:notes`, JSON.stringify(notes)); }catch(e){ /* ignore */ }
+  pushActiveSheetToRemote();
 }
 
 // Identifies "the same event" for note-keeping purposes, stable across
@@ -806,6 +1060,7 @@ async function saveEventsToActiveSheet(events){
     metaLine.textContent = `Loaded ${events.length} events (not saved for next visit — storage unavailable)`;
   }
   render();
+  pushActiveSheetToRemote();
 }
 
 // Uploading a CSV creates a new sheet named after the file, so each
@@ -839,6 +1094,7 @@ async function clearActiveSheetEvents(){
   allEvents = [];
   metaLine.textContent = '';
   render();
+  pushActiveSheetToRemote();
 }
 
 async function addSheet(){
@@ -857,10 +1113,12 @@ async function renameSheet(id){
   const name = prompt('Rename sheet', sheet.name);
   if(name === null) return;
   const trimmed = name.trim();
-  if(!trimmed) return;
+  if(!trimmed || trimmed === sheet.name) return;
+  const oldName = sheet.name;
   sheet.name = trimmed;
   await persistSheetsIndex();
   renderTabs();
+  pushSheetRename(oldName, trimmed);
 }
 
 async function deleteSheet(id){
@@ -875,6 +1133,7 @@ async function deleteSheet(id){
   await persistSheetsIndex();
   await storageDelete(`sheet:${id}:events`);
   await storageDelete(`sheet:${id}:meta`);
+  pushSheetDelete(sheet.name);
   if(activeSheetId === id){
     await setActiveSheet(sheets[0].id);
   } else {
@@ -1204,6 +1463,7 @@ window.addEventListener('beforeunload', () => { saveNotesNow(); });
 
 loadColumnCount();
 loadSheets();
+loadSyncSettings();
 </script>
 </body>
 </html>
