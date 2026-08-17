@@ -30,6 +30,12 @@
   }
   ::selection{background:var(--amber);color:#121214;}
 
+  html{ scrollbar-width:thin; scrollbar-color:var(--hairline) var(--bg); }
+  ::-webkit-scrollbar{ width:10px; height:10px; }
+  ::-webkit-scrollbar-track{ background:var(--bg); }
+  ::-webkit-scrollbar-thumb{ background:var(--hairline); border-radius:6px; }
+  ::-webkit-scrollbar-thumb:hover{ background:var(--muted); }
+
   /* ---------- Header ---------- */
   header{
     position:sticky;top:0;z-index:20;
