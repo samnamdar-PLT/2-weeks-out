@@ -46,16 +46,12 @@
   /* ---------- Header ---------- */
   header{
     flex:0 0 auto;
-    position:relative;
     background:var(--bg);
-    padding:16px 24px;
+    padding:14px 24px;
     border-bottom:1px solid var(--hairline);
   }
-  .header-inner{max-width:1600px;margin:0 auto;}
-  .title-row{
-    display:flex;align-items:center;justify-content:space-between;gap:16px;
-  }
-  .title-block{min-width:0;}
+  .header-inner{max-width:1600px;margin:0 auto;display:flex;align-items:center;gap:20px;flex-wrap:wrap;}
+  .title-block{flex:0 0 auto;}
   .eyebrow{
     font-family:'IBM Plex Mono',monospace;
     font-size:10px;letter-spacing:.16em;text-transform:uppercase;
@@ -63,67 +59,32 @@
   }
   h1{
     font-family:'Bebas Neue',sans-serif;
-    font-size:26px;letter-spacing:.02em;
-    margin:0;line-height:1.15;
+    font-size:24px;letter-spacing:.02em;
+    margin:0;line-height:1.1;
     display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;
   }
   h1 span.count{
     font-family:'IBM Plex Mono',monospace;
-    font-size:12.5px;color:var(--muted);letter-spacing:0;
+    font-size:12px;color:var(--muted);letter-spacing:0;
   }
   .meta-line{
+    flex-basis:100%;
     font-family:'IBM Plex Mono',monospace;
-    font-size:11px;color:var(--muted);
-    margin-top:3px;
+    font-size:10.5px;color:var(--muted);
+    margin-top:2px;
   }
-
-  .menu-toggle{
-    flex:0 0 auto;
-    display:flex;align-items:center;gap:8px;
-    font-family:'Inter',sans-serif;font-size:12.5px;font-weight:600;
-    padding:9px 13px;
-    border-radius:8px;
-    border:1px solid var(--hairline);
-    background:var(--card);color:var(--text);
-    cursor:pointer;white-space:nowrap;
-    transition:border-color .15s ease, background .15s ease;
-  }
-  .menu-toggle:hover{border-color:var(--muted);background:var(--card-hover);}
-  .menu-toggle[aria-expanded="true"]{border-color:var(--amber);color:var(--amber);}
-  .menu-toggle svg{flex:0 0 auto;}
-  #sheetPill{color:var(--muted);}
-  .menu-toggle[aria-expanded="true"] #sheetPill{color:var(--amber);}
-
-  .controls-panel{
-    position:absolute;top:100%;left:0;right:0;
-    background:var(--card);
-    border-bottom:1px solid var(--hairline);
-    box-shadow:0 16px 32px rgba(0,0,0,.45);
-    max-height:0;
-    overflow:hidden;
-    opacity:0;
-    transition:max-height .2s ease, opacity .15s ease;
-    z-index:30;
-  }
-  .controls-panel.open{
-    max-height:min(70vh, 420px);
-    opacity:1;
-    overflow-y:auto;
-  }
-  .controls-panel-inner{max-width:1240px;margin:0 auto;padding:16px 24px 20px;}
 
   .sheet-tabs{
     display:flex;gap:2px;align-items:flex-end;
-    border-bottom:1px solid var(--hairline);
     overflow-x:auto;flex-wrap:nowrap;
     scrollbar-width:thin;
-    margin-bottom:14px;
+    max-width:1600px;margin:10px auto 0;
   }
   .sheet-tab{
     display:flex;align-items:center;gap:7px;
     font-family:'Inter',sans-serif;font-size:12.5px;font-weight:600;
     white-space:nowrap;
-    padding:8px 10px;
+    padding:7px 10px;
     border:none;background:transparent;color:var(--muted);
     cursor:pointer;
     border-bottom:2px solid transparent;
@@ -141,26 +102,26 @@
   }
   .sheet-tab:hover .tab-close{opacity:1;}
   .tab-close:hover{color:var(--coral);}
-  .sheet-tab.add-tab{color:var(--muted);font-size:16px;padding:8px 13px;}
+  .sheet-tab.add-tab{color:var(--muted);font-size:16px;padding:7px 13px;}
   .sheet-tab.add-tab:hover{color:var(--amber);}
 
-  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;flex:1 1 auto;}
   .sort-toggle{
-    display:flex;border:1px solid var(--hairline);border-radius:8px;overflow:hidden;flex:0 0 auto;
+    display:flex;border:1px solid var(--hairline);border-radius:7px;overflow:hidden;flex:0 0 auto;
   }
   .sort-btn{
-    font-family:'Inter',sans-serif;font-size:12.5px;font-weight:600;
-    padding:9px 12px;border:none;background:var(--card);color:var(--muted);
+    font-family:'Inter',sans-serif;font-size:12px;font-weight:600;
+    padding:8px 10px;border:none;background:var(--card);color:var(--muted);
     cursor:pointer;white-space:nowrap;
     transition:background .15s ease, color .15s ease;
   }
   .sort-btn + .sort-btn{border-left:1px solid var(--hairline);}
   .sort-btn.active{background:var(--teal);color:#0d211f;}
   .sort-btn:not(.active):hover{background:var(--card-hover);color:var(--text);}
-  .search-wrap{position:relative;flex:1 1 240px;min-width:180px;}
+  .search-wrap{position:relative;flex:1 1 200px;min-width:160px;}
   .search-wrap input{
     width:100%;
-    background:var(--bg);
+    background:var(--card);
     border:1px solid var(--hairline);
     color:var(--text);
     font-family:'Inter',sans-serif;
@@ -261,8 +222,8 @@
     transition:background .15s ease, color .15s ease, border-color .15s ease;
   }
   .icon-btn:hover{background:var(--card-hover);border-color:var(--hairline);color:var(--text);}
-  .icon-btn.notes-btn.active{color:var(--teal);background:var(--card-hover);border-color:var(--hairline);}
   .icon-btn.notes-btn.has-note{color:var(--amber);}
+  .icon-btn.notes-btn.active{color:var(--teal);background:var(--card-hover);border-color:var(--hairline);}
   .ticket-main{display:flex;}
 
   .ticket-info{
@@ -361,13 +322,19 @@
   }
 
   /* ---------- Notes ---------- */
+  .notes-preview{
+    border-top:1px solid var(--hairline);
+    padding:9px 18px 11px;
+    background:rgba(255,255,255,.012);
+  }
+  .note-preview-text{
+    font-size:12px;color:var(--muted);line-height:1.4;font-style:italic;
+  }
   .notes-panel{
-    display:none;
     border-top:1px solid var(--hairline);
     padding:12px 16px 14px;
     background:rgba(255,255,255,.015);
   }
-  .notes-panel.open{display:block;}
   .notes-label{
     font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;
     color:var(--muted);margin:0 0 6px;
@@ -404,9 +371,7 @@
   .no-results{color:var(--muted);font-size:14px;padding:40px 0;text-align:center;}
 
   @media (max-width:560px){
-    .title-row{align-items:flex-start;}
-    .menu-toggle span{display:none;}
-    h1{font-size:22px;}
+    h1{font-size:20px;}
     .day-grid{grid-template-columns:1fr;}
     .ticket-main{flex-direction:column;}
     .perf{border-left:none;border-top:2px dashed var(--dash);width:auto;height:0;}
@@ -421,42 +386,31 @@
 
 <header id="siteHeader">
   <div class="header-inner">
-    <div class="title-row">
-      <div class="title-block">
-        <p class="eyebrow">2 Weeks Out</p>
-        <h1>Ticket Watch <span class="count" id="countLabel"></span></h1>
-        <p class="meta-line" id="metaLine"></p>
-      </div>
-      <button class="menu-toggle" id="menuToggle" aria-expanded="false" aria-controls="controlsPanel" title="Search, sort, sheets & upload">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-        <span id="sheetPill">Sheet 1</span>
-      </button>
+    <div class="title-block">
+      <p class="eyebrow">2 Weeks Out</p>
+      <h1>Ticket Watch <span class="count" id="countLabel"></span></h1>
     </div>
-  </div>
-
-  <div class="controls-panel" id="controlsPanel">
-    <div class="controls-panel-inner">
-      <div class="sheet-tabs" id="sheetTabs"></div>
-      <div class="toolbar">
-        <div class="search-wrap">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" id="searchInput" placeholder="Search event or venue…">
-        </div>
-        <div class="sort-toggle" id="sortToggle">
-          <button class="sort-btn" data-sort="date">By date</button>
-          <button class="sort-btn active" data-sort="upload">As uploaded</button>
-        </div>
-        <div class="col-stepper" id="colStepper" title="Columns">
-          <button class="col-btn" id="colMinus" type="button" aria-label="Fewer columns">−</button>
-          <span class="col-count" id="colCount">3</span>
-          <button class="col-btn" id="colPlus" type="button" aria-label="More columns">+</button>
-        </div>
-        <button class="btn primary" id="uploadBtn">Upload CSV</button>
-        <button class="btn ghost" id="clearBtn" style="display:none;">Clear data</button>
-        <input type="file" id="fileInput" accept=".csv">
+    <div class="toolbar">
+      <div class="search-wrap">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="searchInput" placeholder="Search event or venue…">
       </div>
+      <div class="sort-toggle" id="sortToggle">
+        <button class="sort-btn" data-sort="date">By date</button>
+        <button class="sort-btn active" data-sort="upload">As uploaded</button>
+      </div>
+      <div class="col-stepper" id="colStepper" title="Columns">
+        <button class="col-btn" id="colMinus" type="button" aria-label="Fewer columns">−</button>
+        <span class="col-count" id="colCount">3</span>
+        <button class="col-btn" id="colPlus" type="button" aria-label="More columns">+</button>
+      </div>
+      <button class="btn primary" id="uploadBtn">Upload CSV</button>
+      <button class="btn ghost" id="clearBtn" style="display:none;">Clear data</button>
+      <input type="file" id="fileInput" accept=".csv">
     </div>
+    <p class="meta-line" id="metaLine"></p>
   </div>
+  <div class="sheet-tabs" id="sheetTabs"></div>
 </header>
 
 <main id="main">
@@ -484,9 +438,6 @@ const countLabel = $('#countLabel');
 const metaLine = $('#metaLine');
 const sheetTabs = $('#sheetTabs');
 const sortToggle = $('#sortToggle');
-const menuToggle = $('#menuToggle');
-const controlsPanel = $('#controlsPanel');
-const sheetPill = $('#sheetPill');
 const colMinus = $('#colMinus');
 const colPlus = $('#colPlus');
 const colCount = $('#colCount');
@@ -496,6 +447,7 @@ let sheets = [];
 let activeSheetId = null;
 let sortMode = 'upload'; // 'date' | 'upload'
 let notes = {}; // eventKey -> note text, scoped to the active sheet
+let openNotesKey = null; // eventKey of the one card whose notes panel is expanded, if any
 let columnCount = 3;
 const MIN_COLS = 1, MAX_COLS = 6;
 
@@ -528,25 +480,6 @@ colPlus.addEventListener('click', () => {
   columnCount++;
   applyColumnCount();
   storageSet('ui:columns', String(columnCount));
-});
-
-function openControlsPanel(){
-  controlsPanel.classList.add('open');
-  menuToggle.setAttribute('aria-expanded', 'true');
-}
-function closeControlsPanel(){
-  controlsPanel.classList.remove('open');
-  menuToggle.setAttribute('aria-expanded', 'false');
-}
-menuToggle.addEventListener('click', e => {
-  e.stopPropagation();
-  if(controlsPanel.classList.contains('open')) closeControlsPanel();
-  else openControlsPanel();
-});
-controlsPanel.addEventListener('click', e => e.stopPropagation());
-document.addEventListener('click', () => closeControlsPanel());
-document.addEventListener('keydown', e => {
-  if(e.key === 'Escape') closeControlsPanel();
 });
 
 // ---------- CSV parsing ----------
@@ -816,6 +749,7 @@ async function loadSheets(){
 async function setActiveSheet(id, persist = true){
   await saveNotesNow(); // flush pending note edits for the sheet we're leaving
   activeSheetId = id;
+  openNotesKey = null;
   if(persist) await storageSet('sheets:active', id);
   renderTabs();
   await loadActiveSheetEvents();
@@ -949,9 +883,6 @@ async function deleteSheet(id){
 }
 
 function renderTabs(){
-  const activeSheet = sheets.find(s => s.id === activeSheetId);
-  sheetPill.textContent = activeSheet ? activeSheet.name : 'Sheets';
-
   sheetTabs.innerHTML = sheets.map(s => `
     <button class="sheet-tab ${s.id === activeSheetId ? 'active' : ''}" data-id="${s.id}" title="Double-click to rename">
       <span class="tab-label">${escapeHtml(s.name)}</span>
@@ -1063,7 +994,8 @@ function render(){
   // "As uploaded" mode relies on.
   let filtered = allEvents.filter(ev => {
     if(!query) return true;
-    return ev.name.toLowerCase().includes(query) || ev.venue.toLowerCase().includes(query);
+    const haystack = [ev.name, ev.venue, ev.primaryLink, ev.vividLink, ev.stubLink].join(' ').toLowerCase();
+    return haystack.includes(query);
   });
 
   countLabel.textContent = `${filtered.length} of ${allEvents.length}`;
@@ -1097,10 +1029,14 @@ function render(){
       ].filter(Boolean).join('');
       const key = eventKey(ev);
       const noteText = notes[key] || '';
+      const isNotesOpen = key === openNotesKey;
+      const notePreview = (!isNotesOpen && noteText.trim())
+        ? `<div class="notes-preview"><div class="note-preview-text">${escapeHtml(noteText.trim().length > 90 ? noteText.trim().slice(0,90) + '…' : noteText.trim())}</div></div>`
+        : '';
       return `
         <div class="ticket" data-key="${escapeHtml(key)}">
           <div class="ticket-toolbar">
-            <button type="button" class="icon-btn notes-btn ${noteText ? 'has-note' : ''}" data-action="notes" data-key="${escapeHtml(key)}" title="Notes">
+            <button type="button" class="icon-btn notes-btn ${isNotesOpen ? 'active' : ''} ${noteText.trim() ? 'has-note' : ''}" data-action="notes" data-key="${escapeHtml(key)}" title="Notes">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
             </button>
           </div>
@@ -1115,10 +1051,11 @@ function render(){
               ${buttons || '<span class="no-links">No ticket links yet</span>'}
             </div>
           </div>
+          ${isNotesOpen ? `
           <div class="notes-panel" data-panel-key="${escapeHtml(key)}">
             <p class="notes-label">Notes</p>
             <textarea class="notes-textarea" placeholder="Anything worth remembering about this one…" data-key="${escapeHtml(key)}">${escapeHtml(noteText)}</textarea>
-          </div>
+          </div>` : notePreview}
         </div>`;
     }).join('');
     return heading + `<div class="day-grid">${tickets}</div>`;
@@ -1201,16 +1138,18 @@ listRoot.addEventListener('click', async e => {
     return;
   }
 
-  // Toggle a card's notes panel open/closed. No full re-render here —
-  // that would collapse every other open panel and drop focus mid-type.
+  // Notes panel toggle. Re-rendering keeps the always-visible preview in
+  // sync with whatever was just typed, and ensures only one card's panel
+  // is open at a time.
   const notesBtn = e.target.closest('[data-action="notes"]');
   if(notesBtn){
     const key = notesBtn.dataset.key;
-    const card = notesBtn.closest('.ticket');
-    const panel = card.querySelector('.notes-panel');
-    const isOpen = panel.classList.toggle('open');
-    notesBtn.classList.toggle('active', isOpen);
-    if(isOpen) panel.querySelector('.notes-textarea').focus();
+    openNotesKey = (openNotesKey === key) ? null : key;
+    render();
+    if(openNotesKey === key){
+      const ta = listRoot.querySelector(`.ticket[data-key="${CSS.escape(key)}"] .notes-textarea`);
+      if(ta) ta.focus();
+    }
     return;
   }
 
