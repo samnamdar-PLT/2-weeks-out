@@ -161,14 +161,12 @@
   }
 
   .day-heading{
-    position:sticky;top:0;
     background:var(--bg);
     font-family:'Bebas Neue',sans-serif;
     font-size:22px;letter-spacing:.02em;
     color:var(--text);
     padding:14px 0 8px;
     display:flex;align-items:center;gap:10px;
-    z-index:10;
   }
   .day-heading .tag-today{
     font-family:'IBM Plex Mono',monospace;
@@ -233,21 +231,21 @@
     flex:0 0 auto;
     display:flex;
     flex-direction:column;
-    gap:6px;
-    padding:14px;
+    gap:5px;
+    padding:12px;
     justify-content:center;
-    min-width:190px;
+    min-width:165px;
   }
-  .link-row{display:flex;gap:5px;}
+  .link-row{display:flex;gap:4px;}
   .link-btn{
     flex:1 1 auto;
     min-width:0;
     display:flex;align-items:center;justify-content:space-between;
-    gap:8px;
+    gap:6px;
     font-family:'Inter',sans-serif;
     font-size:12.5px;font-weight:600;
     text-decoration:none;
-    padding:8px 10px;
+    padding:5px 8px;
     border-radius:6px;
     border:1px solid transparent;
     color:#141316;
@@ -263,7 +261,7 @@
   .copy-btn{
     flex:0 0 auto;
     display:flex;align-items:center;justify-content:center;
-    width:30px;
+    width:26px;
     border-radius:6px;
     border:1px solid var(--hairline);
     background:transparent;
@@ -346,7 +344,7 @@
     <div class="empty" id="emptyState">
       <div class="ticket-icon">🎟️</div>
       <h2>This sheet is empty</h2>
-      <p>Upload a CSV — same format every time — and it becomes this sheet's data, exactly as uploaded, replacing whatever was there before. It stays saved until you upload again or delete it.</p>
+      <p>Upload a CSV to fill this sheet. After that, each new upload creates its own tab named after the file, so nothing gets overwritten.</p>
       <div class="drop-zone" id="dropZone">Drag a CSV here, or use the Upload CSV button above</div>
     </div>
     <div id="listRoot"></div>
@@ -584,6 +582,18 @@ function makeSheetId(){
   return 'sh_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
 
+// Turns an uploaded filename into a readable sheet name, avoiding
+// collisions with sheets that already exist.
+function sheetNameFromFile(file){
+  const base = (file && file.name ? file.name.replace(/\.csv$/i, '') : '').trim();
+  let name = base || 'Sheet';
+  const existing = new Set(sheets.map(s => s.name));
+  if(!existing.has(name)) return name;
+  let n = 2;
+  while(existing.has(`${name} (${n})`)) n++;
+  return `${name} (${n})`;
+}
+
 async function persistSheetsIndex(){
   await storageSet('sheets:index', JSON.stringify(sheets));
 }
@@ -659,6 +669,31 @@ async function saveEventsToActiveSheet(events){
     metaLine.textContent = `Loaded ${events.length} events (not saved for next visit — storage unavailable)`;
   }
   render();
+}
+
+// Uploading a CSV creates a new sheet named after the file, so each
+// upload keeps its own tab instead of overwriting the one you're on.
+// Exception: if the current sheet is still empty (e.g. right after
+// creating it, or on first-ever use), the upload just fills that sheet
+// instead of leaving a pointless blank tab behind.
+async function handleCsvUpload(file, text){
+  const records = recordsFromCSV(text);
+  if(!records.length){
+    alert('That CSV parsed but produced no rows. Check that it matches the expected format.');
+    return;
+  }
+
+  if(allEvents.length === 0){
+    await saveEventsToActiveSheet(records);
+    return;
+  }
+
+  const id = makeSheetId();
+  const name = sheetNameFromFile(file);
+  sheets.push({ id, name, createdAt: Date.now() });
+  await persistSheetsIndex();
+  await setActiveSheet(id);
+  await saveEventsToActiveSheet(records);
 }
 
 async function clearActiveSheetEvents(){
@@ -772,13 +807,13 @@ function groupByDate(events){
     const key = dayKey(ev.dateObj);
     if(key !== currentKey){
       currentKey = key;
-      currentGroup = { heading: key, showTodayTag: true, events: [] };
+      currentGroup = { heading: key, showHeading: true, showTodayTag: true, events: [] };
       groups.push(currentGroup);
     }
     currentGroup.events.push(ev);
   });
   if(withoutDate.length){
-    groups.push({ heading: 'Date TBD', showTodayTag: false, events: withoutDate });
+    groups.push({ heading: 'Date TBD', showHeading: true, showTodayTag: false, events: withoutDate });
   }
   return groups;
 }
@@ -786,7 +821,10 @@ function groupByDate(events){
 // Preserves the exact row order from the CSV, grouping consecutive rows
 // that share a venue — this keeps blocks like "Arthur Ashe" / "Louis
 // Armstrong" / "Grandstand" together the way they appeared in the sheet,
-// instead of interleaving them by date.
+// instead of interleaving them by date. A heading is only shown when a
+// venue actually repeats across consecutive rows (a real block); a sheet
+// where every event has its own unique venue would otherwise get a
+// heading per single card, which is just noise.
 function groupByUploadOrder(events){
   const groups = [];
   let currentKey = null, currentGroup = null;
@@ -799,6 +837,7 @@ function groupByUploadOrder(events){
     }
     currentGroup.events.push(ev);
   });
+  groups.forEach(g => { g.showHeading = g.events.length > 1; });
   return groups;
 }
 
@@ -834,7 +873,9 @@ function render(){
   listRoot.innerHTML = groups.map(g => {
     const firstEv = g.events[0];
     const isToday = g.showTodayTag && firstEv.dateObj && isSameDay(new Date(firstEv.dateObj), now);
-    const heading = `<div class="day-heading">${escapeHtml(g.heading)}${isToday ? '<span class="tag-today">Today</span>' : ''}</div>`;
+    const heading = g.showHeading
+      ? `<div class="day-heading">${escapeHtml(g.heading)}${isToday ? '<span class="tag-today">Today</span>' : ''}</div>`
+      : '';
     const tickets = g.events.map(ev => {
       // Full date + time inside the card itself, not just the time, so
       // each card reads on its own even without a date-based heading
@@ -877,12 +918,7 @@ fileInput.addEventListener('change', e => {
   const reader = new FileReader();
   reader.onload = ev => {
     try{
-      const records = recordsFromCSV(ev.target.result);
-      if(!records.length){
-        alert('That CSV parsed but produced no rows. Check that it matches the expected format.');
-        return;
-      }
-      saveEventsToActiveSheet(records);
+      handleCsvUpload(file, ev.target.result);
     }catch(err){
       alert('Could not read that CSV: ' + err.message);
     }
@@ -972,12 +1008,7 @@ document.addEventListener('drop', e => {
   const reader = new FileReader();
   reader.onload = ev => {
     try{
-      const records = recordsFromCSV(ev.target.result);
-      if(!records.length){
-        alert('That CSV parsed but produced no rows. Check that it matches the expected format.');
-        return;
-      }
-      saveEventsToActiveSheet(records);
+      handleCsvUpload(file, ev.target.result);
     }catch(err){
       alert('Could not read that CSV: ' + err.message);
     }
