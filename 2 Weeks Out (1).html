@@ -46,32 +46,78 @@
   /* ---------- Header ---------- */
   header{
     flex:0 0 auto;
+    position:relative;
     background:var(--bg);
-    padding:28px 24px 14px;
+    padding:16px 24px;
     border-bottom:1px solid var(--hairline);
   }
   .header-inner{max-width:1240px;margin:0 auto;}
+  .title-row{
+    display:flex;align-items:center;justify-content:space-between;gap:16px;
+  }
+  .title-block{min-width:0;}
   .eyebrow{
     font-family:'IBM Plex Mono',monospace;
-    font-size:11px;letter-spacing:.16em;text-transform:uppercase;
-    color:var(--amber);margin:0 0 4px;
+    font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--amber);margin:0 0 2px;
   }
   h1{
     font-family:'Bebas Neue',sans-serif;
-    font-size:44px;letter-spacing:.03em;
-    margin:0 0 14px;line-height:1;
-    display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;
+    font-size:26px;letter-spacing:.02em;
+    margin:0;line-height:1.15;
+    display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;
   }
   h1 span.count{
     font-family:'IBM Plex Mono',monospace;
-    font-size:15px;color:var(--muted);letter-spacing:0;
+    font-size:12.5px;color:var(--muted);letter-spacing:0;
   }
+  .meta-line{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;color:var(--muted);
+    margin-top:3px;
+  }
+
+  .menu-toggle{
+    flex:0 0 auto;
+    display:flex;align-items:center;gap:8px;
+    font-family:'Inter',sans-serif;font-size:12.5px;font-weight:600;
+    padding:9px 13px;
+    border-radius:8px;
+    border:1px solid var(--hairline);
+    background:var(--card);color:var(--text);
+    cursor:pointer;white-space:nowrap;
+    transition:border-color .15s ease, background .15s ease;
+  }
+  .menu-toggle:hover{border-color:var(--muted);background:var(--card-hover);}
+  .menu-toggle[aria-expanded="true"]{border-color:var(--amber);color:var(--amber);}
+  .menu-toggle svg{flex:0 0 auto;}
+  #sheetPill{color:var(--muted);}
+  .menu-toggle[aria-expanded="true"] #sheetPill{color:var(--amber);}
+
+  .controls-panel{
+    position:absolute;top:100%;left:0;right:0;
+    background:var(--card);
+    border-bottom:1px solid var(--hairline);
+    box-shadow:0 16px 32px rgba(0,0,0,.45);
+    max-height:0;
+    overflow:hidden;
+    opacity:0;
+    transition:max-height .2s ease, opacity .15s ease;
+    z-index:30;
+  }
+  .controls-panel.open{
+    max-height:min(70vh, 420px);
+    opacity:1;
+    overflow-y:auto;
+  }
+  .controls-panel-inner{max-width:1240px;margin:0 auto;padding:16px 24px 20px;}
+
   .sheet-tabs{
     display:flex;gap:2px;align-items:flex-end;
     border-bottom:1px solid var(--hairline);
     overflow-x:auto;flex-wrap:nowrap;
     scrollbar-width:thin;
-    margin-top:2px;
+    margin-bottom:14px;
   }
   .sheet-tab{
     display:flex;align-items:center;gap:7px;
@@ -98,7 +144,7 @@
   .sheet-tab.add-tab{color:var(--muted);font-size:16px;padding:8px 13px;}
   .sheet-tab.add-tab:hover{color:var(--amber);}
 
-  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px;}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
   .sort-toggle{
     display:flex;border:1px solid var(--hairline);border-radius:8px;overflow:hidden;flex:0 0 auto;
   }
@@ -114,7 +160,7 @@
   .search-wrap{position:relative;flex:1 1 240px;min-width:180px;}
   .search-wrap input{
     width:100%;
-    background:var(--card);
+    background:var(--bg);
     border:1px solid var(--hairline);
     color:var(--text);
     font-family:'Inter',sans-serif;
@@ -130,7 +176,7 @@
     font-size:13px;font-weight:600;
     padding:10px 14px;border-radius:8px;
     border:1px solid var(--hairline);
-    background:var(--card);color:var(--text);
+    background:var(--bg);color:var(--text);
     cursor:pointer;white-space:nowrap;
     transition:border-color .15s ease, background .15s ease;
   }
@@ -139,11 +185,6 @@
   .btn.primary:hover{filter:brightness(1.08);}
   .btn.ghost{background:transparent;}
   input[type=file]{display:none;}
-  .meta-line{
-    font-family:'IBM Plex Mono',monospace;
-    font-size:11.5px;color:var(--muted);
-    margin-top:10px;
-  }
 
   /* ---------- Body / list ---------- */
   main{
@@ -305,7 +346,9 @@
   .no-results{color:var(--muted);font-size:14px;padding:40px 0;text-align:center;}
 
   @media (max-width:560px){
-    h1{font-size:34px;}
+    .title-row{align-items:flex-start;}
+    .menu-toggle span{display:none;}
+    h1{font-size:22px;}
     .ticket{flex-direction:column;}
     .perf{border-left:none;border-top:2px dashed var(--dash);width:auto;height:0;}
     .perf::before{top:auto;left:-9px;bottom:-9px;}
@@ -319,23 +362,36 @@
 
 <header id="siteHeader">
   <div class="header-inner">
-    <p class="eyebrow">2 Weeks Out</p>
-    <h1>Ticket Watch <span class="count" id="countLabel"></span></h1>
-    <div class="sheet-tabs" id="sheetTabs"></div>
-    <div class="toolbar">
-      <div class="search-wrap">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="text" id="searchInput" placeholder="Search event or venue…">
+    <div class="title-row">
+      <div class="title-block">
+        <p class="eyebrow">2 Weeks Out</p>
+        <h1>Ticket Watch <span class="count" id="countLabel"></span></h1>
+        <p class="meta-line" id="metaLine"></p>
       </div>
-      <div class="sort-toggle" id="sortToggle">
-        <button class="sort-btn" data-sort="date">By date</button>
-        <button class="sort-btn active" data-sort="upload">As uploaded</button>
-      </div>
-      <button class="btn primary" id="uploadBtn">Upload CSV</button>
-      <button class="btn ghost" id="clearBtn" style="display:none;">Clear data</button>
-      <input type="file" id="fileInput" accept=".csv">
+      <button class="menu-toggle" id="menuToggle" aria-expanded="false" aria-controls="controlsPanel" title="Search, sort, sheets & upload">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        <span id="sheetPill">Sheet 1</span>
+      </button>
     </div>
-    <p class="meta-line" id="metaLine"></p>
+  </div>
+
+  <div class="controls-panel" id="controlsPanel">
+    <div class="controls-panel-inner">
+      <div class="sheet-tabs" id="sheetTabs"></div>
+      <div class="toolbar">
+        <div class="search-wrap">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="searchInput" placeholder="Search event or venue…">
+        </div>
+        <div class="sort-toggle" id="sortToggle">
+          <button class="sort-btn" data-sort="date">By date</button>
+          <button class="sort-btn active" data-sort="upload">As uploaded</button>
+        </div>
+        <button class="btn primary" id="uploadBtn">Upload CSV</button>
+        <button class="btn ghost" id="clearBtn" style="display:none;">Clear data</button>
+        <input type="file" id="fileInput" accept=".csv">
+      </div>
+    </div>
   </div>
 </header>
 
@@ -344,8 +400,8 @@
     <div class="empty" id="emptyState">
       <div class="ticket-icon">🎟️</div>
       <h2>This sheet is empty</h2>
-      <p>Upload a CSV to fill this sheet. After that, each new upload creates its own tab named after the file, so nothing gets overwritten.</p>
-      <div class="drop-zone" id="dropZone">Drag a CSV here, or use the Upload CSV button above</div>
+      <p>Upload a CSV to fill this sheet. After that, each new upload creates its own tab named after the file, so nothing gets overwritten. Use the menu above to search, sort, or switch sheets.</p>
+      <div class="drop-zone" id="dropZone">Drag a CSV here, or use the menu above to upload</div>
     </div>
     <div id="listRoot"></div>
   </div>
@@ -364,11 +420,33 @@ const countLabel = $('#countLabel');
 const metaLine = $('#metaLine');
 const sheetTabs = $('#sheetTabs');
 const sortToggle = $('#sortToggle');
+const menuToggle = $('#menuToggle');
+const controlsPanel = $('#controlsPanel');
+const sheetPill = $('#sheetPill');
 
 let allEvents = [];
 let sheets = [];
 let activeSheetId = null;
 let sortMode = 'upload'; // 'date' | 'upload'
+
+function openControlsPanel(){
+  controlsPanel.classList.add('open');
+  menuToggle.setAttribute('aria-expanded', 'true');
+}
+function closeControlsPanel(){
+  controlsPanel.classList.remove('open');
+  menuToggle.setAttribute('aria-expanded', 'false');
+}
+menuToggle.addEventListener('click', e => {
+  e.stopPropagation();
+  if(controlsPanel.classList.contains('open')) closeControlsPanel();
+  else openControlsPanel();
+});
+controlsPanel.addEventListener('click', e => e.stopPropagation());
+document.addEventListener('click', () => closeControlsPanel());
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape') closeControlsPanel();
+});
 
 // ---------- CSV parsing ----------
 function parseCSV(text){
@@ -746,6 +824,9 @@ async function deleteSheet(id){
 }
 
 function renderTabs(){
+  const activeSheet = sheets.find(s => s.id === activeSheetId);
+  sheetPill.textContent = activeSheet ? activeSheet.name : 'Sheets';
+
   sheetTabs.innerHTML = sheets.map(s => `
     <button class="sheet-tab ${s.id === activeSheetId ? 'active' : ''}" data-id="${s.id}" title="Double-click to rename">
       <span class="tab-label">${escapeHtml(s.name)}</span>
