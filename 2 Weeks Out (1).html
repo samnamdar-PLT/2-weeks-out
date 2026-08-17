@@ -51,7 +51,7 @@
     padding:16px 24px;
     border-bottom:1px solid var(--hairline);
   }
-  .header-inner{max-width:1240px;margin:0 auto;}
+  .header-inner{max-width:1600px;margin:0 auto;}
   .title-row{
     display:flex;align-items:center;justify-content:space-between;gap:16px;
   }
@@ -192,13 +192,32 @@
     overflow-y:auto;
     -webkit-overflow-scrolling:touch;
   }
-  .main-inner{max-width:1240px;margin:0 auto;padding:22px 24px 80px;}
+  .main-inner{max-width:1600px;margin:0 auto;padding:22px 24px 80px;}
 
   .day-grid{
     display:grid;
-    grid-template-columns:repeat(auto-fill, minmax(360px, 1fr));
+    grid-template-columns:repeat(var(--cols, 3), minmax(0, 1fr));
     gap:12px;
     margin-bottom:4px;
+  }
+  .col-stepper{
+    display:flex;align-items:center;gap:2px;
+    border:1px solid var(--hairline);border-radius:7px;
+    overflow:hidden;flex:0 0 auto;
+  }
+  .col-btn{
+    font-family:'Inter',sans-serif;font-size:14px;font-weight:700;
+    width:30px;height:100%;padding:8px 0;border:none;
+    background:var(--card);color:var(--muted);cursor:pointer;
+    transition:background .15s ease, color .15s ease;
+  }
+  .col-btn:hover{background:var(--card-hover);color:var(--text);}
+  .col-btn:disabled{opacity:.35;cursor:default;}
+  .col-btn:disabled:hover{background:var(--card);color:var(--muted);}
+  .col-count{
+    font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text);
+    padding:0 8px;border-left:1px solid var(--hairline);border-right:1px solid var(--hairline);
+    background:var(--card);white-space:nowrap;align-self:stretch;display:flex;align-items:center;
   }
 
   .day-heading{
@@ -220,6 +239,7 @@
   .ticket{
     position:relative;
     display:flex;
+    flex-direction:column;
     background:var(--card);
     border:1px solid var(--hairline);
     border-radius:10px;
@@ -227,11 +247,28 @@
     transition:border-color .15s ease;
   }
   .ticket:hover{border-color:#4a4950;}
+  .ticket-toolbar{
+    display:flex;justify-content:flex-end;
+    padding:6px 6px 0;
+  }
+  .icon-btn{
+    display:flex;align-items:center;justify-content:center;
+    width:26px;height:26px;
+    border-radius:6px;
+    border:1px solid transparent;
+    background:transparent;color:var(--muted);
+    cursor:pointer;padding:0;
+    transition:background .15s ease, color .15s ease, border-color .15s ease;
+  }
+  .icon-btn:hover{background:var(--card-hover);border-color:var(--hairline);color:var(--text);}
+  .icon-btn.notes-btn.active{color:var(--teal);background:var(--card-hover);border-color:var(--hairline);}
+  .icon-btn.notes-btn.has-note{color:var(--amber);}
+  .ticket-main{display:flex;}
 
   .ticket-info{
     flex:1 1 auto;
     min-width:0;
-    padding:16px 18px;
+    padding:10px 18px 16px;
     display:flex;
     flex-direction:column;
     gap:5px;
@@ -256,12 +293,13 @@
     width:0;
     border-left:2px dashed var(--dash);
     flex:0 0 auto;
+    margin-top:10px;
   }
   .perf::before,.perf::after{
     content:"";
     position:absolute;left:50%;
     width:16px;height:16px;
-    background:var(--bg);
+    background:var(--card);
     border-radius:50%;
     transform:translateX(-50%);
   }
@@ -273,7 +311,7 @@
     display:flex;
     flex-direction:column;
     gap:5px;
-    padding:12px;
+    padding:10px 12px 16px;
     justify-content:center;
     min-width:165px;
   }
@@ -322,6 +360,26 @@
     padding:8px 10px;
   }
 
+  /* ---------- Notes ---------- */
+  .notes-panel{
+    display:none;
+    border-top:1px solid var(--hairline);
+    padding:12px 16px 14px;
+    background:rgba(255,255,255,.015);
+  }
+  .notes-panel.open{display:block;}
+  .notes-label{
+    font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--muted);margin:0 0 6px;
+  }
+  .notes-textarea{
+    width:100%;min-height:52px;resize:vertical;
+    background:var(--bg);border:1px solid var(--hairline);border-radius:6px;
+    color:var(--text);font-family:'Inter',sans-serif;font-size:12.5px;
+    padding:8px 10px;outline:none;
+  }
+  .notes-textarea:focus{border-color:var(--teal);}
+
   /* ---------- Empty state ---------- */
   .empty{
     max-width:520px;margin:80px auto;text-align:center;
@@ -349,7 +407,8 @@
     .title-row{align-items:flex-start;}
     .menu-toggle span{display:none;}
     h1{font-size:22px;}
-    .ticket{flex-direction:column;}
+    .day-grid{grid-template-columns:1fr;}
+    .ticket-main{flex-direction:column;}
     .perf{border-left:none;border-top:2px dashed var(--dash);width:auto;height:0;}
     .perf::before{top:auto;left:-9px;bottom:-9px;}
     .perf::after{left:auto;right:-9px;bottom:-9px;top:auto;}
@@ -387,6 +446,11 @@
           <button class="sort-btn" data-sort="date">By date</button>
           <button class="sort-btn active" data-sort="upload">As uploaded</button>
         </div>
+        <div class="col-stepper" id="colStepper" title="Columns">
+          <button class="col-btn" id="colMinus" type="button" aria-label="Fewer columns">−</button>
+          <span class="col-count" id="colCount">3</span>
+          <button class="col-btn" id="colPlus" type="button" aria-label="More columns">+</button>
+        </div>
         <button class="btn primary" id="uploadBtn">Upload CSV</button>
         <button class="btn ghost" id="clearBtn" style="display:none;">Clear data</button>
         <input type="file" id="fileInput" accept=".csv">
@@ -423,11 +487,48 @@ const sortToggle = $('#sortToggle');
 const menuToggle = $('#menuToggle');
 const controlsPanel = $('#controlsPanel');
 const sheetPill = $('#sheetPill');
+const colMinus = $('#colMinus');
+const colPlus = $('#colPlus');
+const colCount = $('#colCount');
 
 let allEvents = [];
 let sheets = [];
 let activeSheetId = null;
 let sortMode = 'upload'; // 'date' | 'upload'
+let notes = {}; // eventKey -> note text, scoped to the active sheet
+let columnCount = 3;
+const MIN_COLS = 1, MAX_COLS = 6;
+
+function applyColumnCount(){
+  document.documentElement.style.setProperty('--cols', columnCount);
+  colCount.textContent = columnCount;
+  colMinus.disabled = columnCount <= MIN_COLS;
+  colPlus.disabled = columnCount >= MAX_COLS;
+}
+
+async function loadColumnCount(){
+  try{
+    const res = await storageGet('ui:columns');
+    if(res && res.value){
+      const n = parseInt(res.value, 10);
+      if(!isNaN(n)) columnCount = Math.min(MAX_COLS, Math.max(MIN_COLS, n));
+    }
+  }catch(e){ /* keep default */ }
+  applyColumnCount();
+}
+
+colMinus.addEventListener('click', () => {
+  if(columnCount <= MIN_COLS) return;
+  columnCount--;
+  applyColumnCount();
+  storageSet('ui:columns', String(columnCount));
+});
+colPlus.addEventListener('click', () => {
+  if(columnCount >= MAX_COLS) return;
+  columnCount++;
+  applyColumnCount();
+  storageSet('ui:columns', String(columnCount));
+});
 
 function openControlsPanel(){
   controlsPanel.classList.add('open');
@@ -713,6 +814,7 @@ async function loadSheets(){
 }
 
 async function setActiveSheet(id, persist = true){
+  await saveNotesNow(); // flush pending note edits for the sheet we're leaving
   activeSheetId = id;
   if(persist) await storageSet('sheets:active', id);
   renderTabs();
@@ -725,6 +827,10 @@ async function loadActiveSheetEvents(){
     allEvents = (res && res.value) ? JSON.parse(res.value) : [];
   }catch(e){ allEvents = []; }
   try{
+    const notesRes = await storageGet(`sheet:${activeSheetId}:notes`);
+    notes = (notesRes && notesRes.value) ? JSON.parse(notesRes.value) : {};
+  }catch(e){ notes = {}; }
+  try{
     const meta = await storageGet(`sheet:${activeSheetId}:meta`);
     if(meta && meta.value){
       const m = JSON.parse(meta.value);
@@ -734,6 +840,25 @@ async function loadActiveSheetEvents(){
     }
   }catch(e){ metaLine.textContent = ''; }
   render();
+}
+
+let saveNotesTimer = null;
+function saveNotesSoon(){
+  clearTimeout(saveNotesTimer);
+  saveNotesTimer = setTimeout(saveNotesNow, 500);
+}
+async function saveNotesNow(){
+  clearTimeout(saveNotesTimer);
+  try{ await storageSet(`sheet:${activeSheetId}:notes`, JSON.stringify(notes)); }catch(e){ /* ignore */ }
+}
+
+// Identifies "the same event" for note-keeping purposes, stable across
+// re-uploads as long as the ticket link or name/venue/date stay the same.
+function eventKey(ev){
+  if(ev.primaryLink && ev.primaryLink.trim()){
+    return 'pl:' + ev.primaryLink.trim().toLowerCase();
+  }
+  return 'nv:' + [ev.name, ev.venue, ev.dateStr].join('|').trim().toLowerCase();
 }
 
 async function saveEventsToActiveSheet(events){
@@ -970,16 +1095,29 @@ function render(){
         linkRow(ev.vividLink, 'VividSeats', 'site-vivid'),
         linkRow(ev.stubLink, 'StubHub', 'site-stub')
       ].filter(Boolean).join('');
+      const key = eventKey(ev);
+      const noteText = notes[key] || '';
       return `
-        <div class="ticket">
-          <div class="ticket-info">
-            <div class="ev-name">${escapeHtml(ev.name)}</div>
-            <div class="ev-venue">${escapeHtml(ev.venue)}</div>
-            ${dateTime ? `<div class="ev-time">${dateTime}</div>` : ''}
+        <div class="ticket" data-key="${escapeHtml(key)}">
+          <div class="ticket-toolbar">
+            <button type="button" class="icon-btn notes-btn ${noteText ? 'has-note' : ''}" data-action="notes" data-key="${escapeHtml(key)}" title="Notes">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
+            </button>
           </div>
-          <div class="perf"></div>
-          <div class="ticket-actions">
-            ${buttons || '<span class="no-links">No ticket links yet</span>'}
+          <div class="ticket-main">
+            <div class="ticket-info">
+              <div class="ev-name">${escapeHtml(ev.name)}</div>
+              <div class="ev-venue">${escapeHtml(ev.venue)}</div>
+              ${dateTime ? `<div class="ev-time">${dateTime}</div>` : ''}
+            </div>
+            <div class="perf"></div>
+            <div class="ticket-actions">
+              ${buttons || '<span class="no-links">No ticket links yet</span>'}
+            </div>
+          </div>
+          <div class="notes-panel" data-panel-key="${escapeHtml(key)}">
+            <p class="notes-label">Notes</p>
+            <textarea class="notes-textarea" placeholder="Anything worth remembering about this one…" data-key="${escapeHtml(key)}">${escapeHtml(noteText)}</textarea>
           </div>
         </div>`;
     }).join('');
@@ -1063,6 +1201,19 @@ listRoot.addEventListener('click', async e => {
     return;
   }
 
+  // Toggle a card's notes panel open/closed. No full re-render here —
+  // that would collapse every other open panel and drop focus mid-type.
+  const notesBtn = e.target.closest('[data-action="notes"]');
+  if(notesBtn){
+    const key = notesBtn.dataset.key;
+    const card = notesBtn.closest('.ticket');
+    const panel = card.querySelector('.notes-panel');
+    const isOpen = panel.classList.toggle('open');
+    notesBtn.classList.toggle('active', isOpen);
+    if(isOpen) panel.querySelector('.notes-textarea').focus();
+    return;
+  }
+
   // Best-effort "open in background tab" behavior: we can't force this
   // (browsers intentionally don't let pages control tab focus), but calling
   // window.focus() right after window.open() pulls focus back to this tab
@@ -1074,6 +1225,18 @@ listRoot.addEventListener('click', async e => {
   e.preventDefault();
   window.open(link.href, '_blank', 'noopener,noreferrer');
   window.focus();
+});
+
+// Typing in a note updates the in-memory map and saves shortly after,
+// without a full re-render (which would drop focus mid-type).
+listRoot.addEventListener('input', e => {
+  const textarea = e.target.closest('.notes-textarea');
+  if(!textarea) return;
+  const key = textarea.dataset.key;
+  notes[key] = textarea.value;
+  saveNotesSoon();
+  const notesBtn = textarea.closest('.ticket').querySelector('.notes-btn');
+  if(notesBtn) notesBtn.classList.toggle('has-note', !!textarea.value.trim());
 });
 
 ['dragenter','dragover'].forEach(evt => {
@@ -1098,6 +1261,9 @@ document.addEventListener('drop', e => {
   reader.readAsText(file);
 });
 
+window.addEventListener('beforeunload', () => { saveNotesNow(); });
+
+loadColumnCount();
 loadSheets();
 </script>
 </body>
